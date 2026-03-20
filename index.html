@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VOXMBC — Vocoder Engine</title>
+<title>This.vocoder — Vocoder Engine</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -168,7 +168,7 @@
 <body>
 
 <div class="header">
-  <div class="logo">VOX<span>MBC</span></div>
+  <div class="logo">THIS.<span>VOCODER</span></div>
   <div class="header-meta">
     <div class="badge">DSP ENGINE v1.0</div>
     <div class="leds">
@@ -729,7 +729,7 @@ function mbc(d, sr, settings) {
 class BiquadFilter{constructor(sr){this.sampleRate=sr;this.type="off";this.cutoff=20000;this.resonance=0.707;this.poles=1;this._pitchMultiple=0;this._multi=false;this._b0=1;this._b1=0;this._b2=0;this._a1=0;this._a2=0;this._x1=0;this._x2=0;this._y1=0;this._y2=0;this._voiceStates=[]}setType(t){this.type=t;this._updateCoefficients();return this}setCutoff(hz){this.cutoff=Math.max(20,Math.min(hz,this.sampleRate/2-1));this._updateCoefficients();return this}setResonance(q){this.resonance=Math.max(0.1,q);this._updateCoefficients();return this}setPoles(n){this.poles=Math.max(1,n|0);return this}targetPitch(m){this._pitchMultiple=m||0;return this}useMulti(b){this._multi=!!b;return this}_resizeVoiceStates(n){while(this._voiceStates.length<n)this._voiceStates.push({x1:0,x2:0,y1:0,y2:0})}_updateCoefficients(){if(this.type==="off")return;const sr=this.sampleRate,f0=this.cutoff,Q=this.resonance,w0=(2*Math.PI*f0)/sr,cosW=Math.cos(w0),sinW=Math.sin(w0),alpha=sinW/(2*Q);let b0,b1,b2,a0,a1,a2;switch(this.type){case"lowpass":b0=(1-cosW)/2;b1=1-cosW;b2=(1-cosW)/2;a0=1+alpha;a1=-2*cosW;a2=1-alpha;break;case"highpass":b0=(1+cosW)/2;b1=-(1+cosW);b2=(1+cosW)/2;a0=1+alpha;a1=-2*cosW;a2=1-alpha;break;case"bandpass":b0=sinW/2;b1=0;b2=-sinW/2;a0=1+alpha;a1=-2*cosW;a2=1-alpha;break;case"notch":b0=1;b1=-2*cosW;b2=1;a0=1+alpha;a1=-2*cosW;a2=1-alpha;break;default:return}this._b0=b0/a0;this._b1=b1/a0;this._b2=b2/a0;this._a1=a1/a0;this._a2=a2/a0}process(x){if(this.type==="off")return x;const poles=this.poles,b0=this._b0,b1=this._b1,b2=this._b2,a1=this._a1,a2=this._a2;let x1=this._x1,x2=this._x2,y1=this._y1,y2=this._y2;for(let p=0;p<poles;p++){const y=b0*x+b1*x1+b2*x2-a1*y1-a2*y2;x2=x1;x1=x;y2=y1;y1=y;x=y}this._x1=x1;this._x2=x2;this._y1=y1;this._y2=y2;return x}processVoice(x,s){if(this.type==="off")return x;const poles=this.poles,b0=this._b0,b1=this._b1,b2=this._b2,a1=this._a1,a2=this._a2;let x1=s.x1,x2=s.x2,y1=s.y1,y2=s.y2;for(let p=0;p<poles;p++){const y=b0*x+b1*x1+b2*x2-a1*y1-a2*y2;x2=x1;x1=x;y2=y1;y1=y;x=y}s.x1=x1;s.x2=x2;s.y1=y1;s.y2=y2;return x}reset(){this._x1=this._x2=this._y1=this._y2=0;for(const s of this._voiceStates)s.x1=s.x2=s.y1=s.y2=0;return this}}
 class Distortion{constructor(){this.amount=0;this._tableSize=4096;this._table=new Float32Array(this._tableSize);this._buildTable()}setAmount(a){this.amount=Math.max(0,Math.min(1,a));this._buildTable();return this}_buildTable(){const k=this.amount*100,size=this._tableSize;for(let i=0;i<size;i++){const x=(i/size)*2-1;this._table[i]=k===0?x:(Math.PI+k)*x/(Math.PI+k*Math.abs(x))}}process(x){if(this.amount===0)return x;const idx=Math.floor(((x+1)/2)*(this._tableSize-1));return this._table[Math.max(0,Math.min(this._tableSize-1,idx))]}}
 class Delay{constructor(sr){this.sampleRate=sr;this.maxDelaySamples=sr*2;this._buffer=new Float32Array(this.maxDelaySamples);this._writeHead=0;this.delaySamples=0;this.feedback=0;this.mix=0}set(timeSamples,feedback,mix){this.delaySamples=Math.max(1,Math.min(Math.floor(timeSamples),this.maxDelaySamples-1));this.feedback=Math.max(0,Math.min(0.99,feedback));this.mix=Math.max(0,Math.min(1,mix));return this}setTimeMs(ms){this.delaySamples=Math.max(1,Math.min(Math.floor((ms/1000)*this.sampleRate),this.maxDelaySamples-1));return this}process(x){if(this.mix===0)return x;const readHead=(this._writeHead-this.delaySamples+this.maxDelaySamples)%this.maxDelaySamples,delayed=this._buffer[readHead];this._buffer[this._writeHead]=x+delayed*this.feedback;this._writeHead=(this._writeHead+1)%this.maxDelaySamples;return x*(1-this.mix)+delayed*this.mix}reset(){this._buffer.fill(0);this._writeHead=0;return this}}
-class Chorus{constructor(maxVoices=16,sampleRate=48000){this.sampleRate=sampleRate;this.MAX_VOICES=Math.min(maxVoices,32);this.voices=0;this.del=0.5;this.feedback=0;this._bufLen=256;this._bufs=[];this._reads=new Int32Array(this.MAX_VOICES);this._phases=new Float32Array(this.MAX_VOICES).map(()=>Math.random());this.baseRate=0.2;this._rates=new Float32Array(this.MAX_VOICES).map(()=>this.baseRate*Math.random()*2)}set(voices,del,feedback,rate){this.voices=Math.max(0,Math.min(voices|0,this.MAX_VOICES));this.del=del;this.feedback=Math.max(-0.99,Math.min(0.99,feedback));if(rate!==undefined){this.baseRate=Math.max(0.001,rate);for(let i=0;i<this.MAX_VOICES;i++)this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}this._allocBuffers();return this}size(samples){this._bufLen=Math.max(2,samples|0);this._allocBuffers();return this}_allocBuffers(){const len=this._bufLen;for(let i=0;i<this.MAX_VOICES;i++){if(!this._bufs[i]||this._bufs[i].length!==len){this._bufs[i]=new Float32Array(len);this._reads[i]=0}}}process(x){const voices=this.voices;if(voices===0)return x;const len=this._bufLen,feedback=this.feedback,depth=this.del;let acc=0;for(let i=0;i<voices;i++){const buf=this._bufs[i];let write=this._reads[i]+1;if(write>=len)write=0;this._reads[i]=write;let phase=this._phases[i];phase+=this._rates[i]/this.sampleRate;if(phase>=1)phase-=1;this._phases[i]=phase;const lfo=phase<0.5?4*phase-1:3-4*phase,delay=(0.5+lfo*0.5)*depth*len;let readPos=write-delay;if(readPos<0)readPos+=len;const i0=readPos|0,i1=(i0+1)%len,frac=readPos-i0,delayed=buf[i0]*(1-frac)+buf[i1]*frac;acc+=delayed;buf[write]=x+delayed*feedback}return(acc+x)/(voices+1)}reset(){for(let i=0;i<this._bufs.length;i++){if(this._bufs[i])this._bufs[i].fill(0);this._reads[i]=0;this._phases[i]=Math.random();this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}return this}}
+class Chorus{constructor(maxVoices=16,sampleRate=48000){this.sampleRate=sampleRate;this.MAX_VOICES=Math.min(maxVoices,32);this.voices=0;this.del=0.5;this.feedback=0;this._bufLen=256;this._bufs=[];this._reads=new Int32Array(this.MAX_VOICES);this._phases=new Float32Array(this.MAX_VOICES).map((_,i)=>i===0?0:Math.random());this.baseRate=0.2;this._rates=new Float32Array(this.MAX_VOICES).map(()=>this.baseRate*Math.random()*2)}set(voices,del,feedback,rate){this.voices=Math.max(0,Math.min(voices|0,this.MAX_VOICES));this.del=del;this.feedback=Math.max(-0.99,Math.min(0.99,feedback));if(rate!==undefined){this.baseRate=Math.max(0.001,rate);for(let i=0;i<this.MAX_VOICES;i++)this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}this._allocBuffers();return this}size(samples){this._bufLen=Math.max(2,samples|0);this._allocBuffers();return this}_allocBuffers(){const len=this._bufLen;for(let i=0;i<this.MAX_VOICES;i++){if(!this._bufs[i]||this._bufs[i].length!==len){this._bufs[i]=new Float32Array(len);this._reads[i]=0}}}process(x){const voices=this.voices;if(voices===0)return x;const len=this._bufLen,feedback=this.feedback,depth=this.del;let acc=0;for(let i=0;i<voices;i++){const buf=this._bufs[i];let write=this._reads[i]+1;if(write>=len)write=0;this._reads[i]=write;let phase=this._phases[i];phase+=this._rates[i]/this.sampleRate;if(phase>=1)phase-=1;this._phases[i]=phase;const lfo=phase<0.5?4*phase-1:3-4*phase,delay=(0.5+lfo*0.5)*depth*len;let readPos=write-delay;if(readPos<0)readPos+=len;const i0=readPos|0,i1=(i0+1)%len,frac=readPos-i0,delayed=buf[i0]*(1-frac)+buf[i1]*frac;acc+=delayed;buf[write]=x+delayed*feedback}return(acc+x)/(voices+1)}reset(){for(let i=0;i<this._bufs.length;i++){if(this._bufs[i])this._bufs[i].fill(0);this._reads[i]=0;this._phases[i]=i===0?0:Math.random();this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}return this}}
 class FXChain{constructor(sr){this.distortion=new Distortion();this.delay=new Delay(sr);this.chorus=new Chorus(16,sr)}process(x){x=this.distortion.process(x);x=this.chorus.process(x);x=this.delay.process(x);return x}reset(){this.delay.reset();this.chorus.reset();return this}}
 class LFO{constructor(sr){this.sampleRate=sr;this.rate=1;this.depth=0;this.shape="sine";this.target="filter";this.enabled=false;this._phase=0}setRate(hz){this.rate=Math.max(0.01,hz);return this}setDepth(a){this.depth=a;return this}setShape(t){this.shape=t;return this}setTarget(t){this.target=t;return this}enable(){this.enabled=true;return this}disable(){this.enabled=false;return this}tick(){if(!this.enabled)return 0;const p=this._phase;let v;switch(this.shape){case"square":v=p<0.5?1:-1;break;case"sawtooth":v=2*p-1;break;case"triangle":v=p<0.5?4*p-1:3-4*p;break;default:v=Math.sin(p*2*Math.PI)}this._phase+=this.rate/this.sampleRate;if(this._phase>=1)this._phase-=1;return v*this.depth}reset(){this._phase=0;return this}}
 class DSPOscillator{
@@ -748,7 +748,7 @@ class DSPOscillator{
   _detuneSemitones(freq,st){return freq*Math.pow(2,st/12)}
   _buildFrequencies(baseFreqs){const count=Math.max(1,this._superCount);if(count<=1)return baseFreqs;const result=[];for(const freq of baseFreqs){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;result.push(this._detuneSemitones(freq,t*this._superDetune))}}return result}
   _buildPanPositions(baseFreqCount){const count=Math.max(1,this._superCount),spread=this._superPanSpread,positions=[];for(let b=0;b<baseFreqCount;b++){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;positions.push(t*spread)}}return positions}
-  _applyFrequencies(baseFreqs){const expanded=this._buildFrequencies(baseFreqs),oldPhases=this.phases;this.phases=expanded.map((_,i)=>oldPhases[i]!==undefined?oldPhases[i]:Math.random()*(this._superRandomPhase??0));this.frequencies=expanded;this._baseFreqs=baseFreqs;this._panPositions=this._buildPanPositions(baseFreqs.length);this.filter._resizeVoiceStates(expanded.length)}
+  _applyFrequencies(baseFreqs){const expanded=this._buildFrequencies(baseFreqs),oldPhases=this.phases;this.phases=expanded.map((_,i)=>oldPhases[i]!==undefined?oldPhases[i]:(i===0?0:Math.random()*(this._superRandomPhase??0)));this.frequencies=expanded;this._baseFreqs=baseFreqs;this._panPositions=this._buildPanPositions(baseFreqs.length);this.filter._resizeVoiceStates(expanded.length)}
   setFrequency(freqs){const base=Array.isArray(freqs)?freqs:[freqs];this._applyFrequencies(base);return this}
   setSemitones(midis){const base=Array.isArray(midis)?midis.map(m=>this._midiToFreq(m)):[this._midiToFreq(midis)];this._applyFrequencies(base);return this}
   super(count,spread=0.1,randomPhase=0,panSpread=0){this._superCount=Math.max(1,Math.floor(count));this._superDetune=spread;this._superRandomPhase=randomPhase;this._superPanSpread=Math.max(0,Math.min(1,panSpread));if(this._baseFreqs)this._applyFrequencies(this._baseFreqs);return this}
@@ -821,7 +821,7 @@ class DSPOscillator{
     for(let i=0;i<this.frequencies.length;i++)sample+=this._readTable(this.phases[i])
     return(sample/Math.sqrt(voiceCount))*this.gain
   }
-  reset(){this.phases=this.phases.map(()=>Math.random()*(this._superRandomPhase??0));this.filter.reset();this.fx.reset();this.lfo.reset();return this}
+  reset(){this.phases=this.phases.map((_,i)=>i===0?0:Math.random()*(this._superRandomPhase??0));this.filter.reset();this.fx.reset();this.lfo.reset();return this}
   hardReset(){this.phases=[];this.frequencies=[];this._baseFreqs=null;this._panPositions=[];this._superCount=0;this._superDetune=0.1;this._superRandomPhase=0;this._superPanSpread=0;this.gain=1.0;this.waveType="sine";this.filter.setType("off");this.filter._pitchMultiple=0;this.filter._multi=false;this.filter.reset();this.fx.reset();this.lfo.reset();this.lfo.disable();return this}
 }
 
@@ -919,7 +919,7 @@ function buildLiveOsc(){
   liveOscR.setSemitones(noteList)
   liveOscR.super(uiState.osc.super,uiState.osc.detune,1)
   applyOscParams(liveOscR)
-  liveOscR.reset()
+  if(liveOscR.phases.length>0)liveOscR.phases[0]=0
 }
 
 async function startAudio(){
@@ -962,9 +962,14 @@ async function startAudio(){
         if(stereo){carR=liveOscR.tick()} else carR=carL
       }
       let vL=uiState.voc.active?_processSample(modL,carL,sr,vocOpts,vocState):carL
-      let vR=uiState.voc.active?_processSample(modR,carR,sr,voOptsR,vsR):carR
-      if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0});vR=mbc(vR*3,sr,{...mbcOptsR,ch:1})}
-      if(!stereo)vR=vL
+      if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
+      let vR
+      if(stereo){
+        vR=uiState.voc.active?_processSample(modR,carR,sr,voOptsR,vsR):carR
+        if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOptsR,ch:1})}
+      } else {
+        vR=vL
+      }
       outL[i]=Math.max(-1,Math.min(1,vL*uiState.masterVol))
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
@@ -1362,7 +1367,7 @@ function saveConfig(){
   const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'})
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = 'voxmbc-config.json'
+  a.download = 'ThisVocoder-config.json'
   a.click()
   URL.revokeObjectURL(a.href)
 }
@@ -1665,8 +1670,14 @@ function renderWav(){
         if(stereo){carR=offOscR.tick()} else carR=carL
       }
       let vL=uiState.voc.active?_processSample(modL,carL,sr,offVocOpts,offVocState):carL
-      let vR=stereo?(uiState.voc.active?_processSample(modR,carR,sr,offVocOptsR,offVocStateR):carR):vL
-      if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0});vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}
+      if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
+      let vR
+      if(stereo){
+        vR=uiState.voc.active?_processSample(modR,carR,sr,offVocOptsR,offVocStateR):carR
+        if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}
+      } else {
+        vR=vL
+      }
       outL[i]=Math.max(-1,Math.min(1,vL*uiState.masterVol))
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
@@ -1692,7 +1703,7 @@ function renderWav(){
     const blob=new Blob([buf],{type:'audio/wav'})
     const a=document.createElement('a')
     a.href=URL.createObjectURL(blob)
-    a.download=`voxmbc-${useInputLen?'full':Math.round(total/sr)+'s'}.wav`
+    a.download=`ThisVocoder-${useInputLen?'full':Math.round(total/sr)+'s'}.wav`
     a.click(); URL.revokeObjectURL(a.href)
     btn.textContent='⬇ SAVE WAV'; btn.disabled=false
   },20)
