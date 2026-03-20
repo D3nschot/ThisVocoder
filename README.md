@@ -2,7 +2,7 @@
 
 A browser-based vocoder and carrier synthesis engine built entirely in vanilla HTML/JS — no dependencies, no install, just open the file.
 
-> **Note:** The UI layout and this README were generated with AI assistance. The DSP engine and core audio logic were written by the author (D3/DX).
+> **Note:** The UI layout and this README were generated with AI assistance. The DSP engine and core audio logic were written by the author. (ME D3/DX)
 
 ---
 
@@ -154,5 +154,7 @@ In stereo mode, L and R paths are processed independently with a configurable sh
 ## Browser Compatibility
 
 Works in any modern browser with Web Audio API support. Chrome and Firefox are recommended. Safari may have issues with `ScriptProcessor` on some versions.
+
+**On ScriptProcessor vs AudioWorklet:** The engine uses `ScriptProcessor` rather than the newer `AudioWorklet` API. Yes, `ScriptProcessor` is deprecated and has known limitations — it runs on the main thread and can cause audio glitches under heavy load. The reason it was kept is straightforward: `AudioWorklet` requires a secure context (HTTPS or localhost) and won't work when opening an HTML file directly from disk. Migrating to `AudioWorklet` would mean requiring a local server or wrapping it in an app, which defeats the purpose. The tradeoff was accepted knowingly — some audio reliability in exchange for being able to just open the file. when you save the html
 
 No internet connection required after the file is loaded. All audio processing is local.
