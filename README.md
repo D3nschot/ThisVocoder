@@ -133,7 +133,7 @@ Input 1 (Modulator)
         ▼
   Vocoder Analysis ──── band envelopes ────▶ Vocoder Synthesis ──▶ MBC ──▶ Out
                                                      ▲
-Input 2 / OSC ──── Filter ──── FX Chain ────────────┘
+Input 2 / OSC ──── Filter ──── FX Chain ─────────────┘
 ```
 
 In stereo mode, L and R paths are processed independently with a configurable shift offset between them for width.
