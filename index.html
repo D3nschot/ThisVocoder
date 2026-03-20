@@ -1006,7 +1006,7 @@ async function startAudio(){
         const phase = b / n * 512 + t & 255
         pw = t&255
         const wave = Math.sin((((phase < pw * 2) ^ (phase < pw * 2 - 256)) ? phase : -phase+t*2)*Math.PI/128)/2+.5
-        bandEnvDisplay[b] = wave/10
+        bandEnvDisplay[b] = wave**2/10
         bandEnvPeak[b] = 0
         bandEnvPeakTimer[b] = 0
       }
