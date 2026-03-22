@@ -16,7 +16,7 @@ Everything runs in real-time in your browser using the Web Audio API's ScriptPro
 
 ## Getting Started
 
-1. Open `voxmdc.html` in a browser (Chrome or Firefox recommended)
+1. Open `index.html` in a browser (Chrome or Firefox recommended)
 2. Click or drag an audio file into **Input 1 — Modulator** (your voice, speech, or any audio)
 3. Optionally load a second audio file into **Input 2 — Carrier**, or leave it on the built-in oscillator
 4. Select notes on the keyboard (or leave the defaults)
