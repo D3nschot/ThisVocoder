@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>This.vocoder — Vocoder Engine</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg:#0a0b0d;--panel:#111318;--surface:#181c23;--border:#252a35;--border2:#1e2330;
@@ -96,7 +94,6 @@
   .wave-icon{width:28px;height:14px}
   .spectrum-module{background:var(--panel);border:1px solid var(--border);overflow:hidden;position:relative}
   .spectrum-module::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));z-index:1}
-  /* spectrum canvas — tall, crosshair only when EQ on */
   .spectrum-canvas{width:100%;height:200px;display:block;background:var(--bg);touch-action:none}
   .spectrum-canvas.eq-active{cursor:crosshair}
   .kb-body{padding:14px 18px}
@@ -120,6 +117,11 @@
   ::-webkit-scrollbar{width:4px;height:4px}
   ::-webkit-scrollbar-track{background:var(--bg)}
   ::-webkit-scrollbar-thumb{background:var(--muted)}
+  /* Loading progress bar */
+  #loadProgress{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);padding:12px 20px;min-width:260px;z-index:9999;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);}
+  #loadProgressMsg{color:var(--accent);letter-spacing:2px;margin-bottom:6px;}
+  #loadProgressBar{background:var(--bg);height:4px;border-radius:2px;overflow:hidden;}
+  #loadProgressFill{width:0%;height:100%;background:var(--accent);transition:width 0.3s;}
 </style>
 </head>
 <body>
@@ -129,7 +131,7 @@
     <div class="badge">DSP ENGINE v1.0</div>
     <div class="leds">
       <div class="led active" id="led1"></div>
-      <div class="led" id="led2"></div>
+      <div class="led active" id="led2"></div>
       <div class="led" id="led3"></div>
     </div>
   </div>
@@ -152,7 +154,7 @@
         </div>
       </div>
     </div>
-    <canvas class="spectrum-canvas" id="specCanvas"></canvas>
+    <canvas class="spectrum-canvas" id="specCanvas" width="884" height="200"></canvas>
     <div style="padding:4px 12px 6px;font-size:8px;color:var(--text-dim);letter-spacing:1px;">
       EQ ON: TAP=ADD · DRAG POINT · DBLCLICK/DOUBLE-TAP=REMOVE · LONG-PRESS=REMOVE · DRAG DIAMOND=TENSION
     </div>
@@ -169,14 +171,14 @@
     </div>
     <div class="io-body">
       <div class="file-slot" id="slot1">
-        <input type="file" id="fileIn1" accept="audio/*" style="display:none">
+        <input type="file" id="fileIn1" accept="audio/*,video/*" style="display:none">
         <div class="slot-tag">INPUT 1 — MODULATOR</div>
         <div class="slot-label" id="slot1Label">CLICK / DROP</div>
         <div class="slot-name" id="file1Name">no file loaded</div>
         <div class="waveform-bar"><canvas id="waveCanvas1"></canvas></div>
       </div>
       <div class="file-slot carrier-slot" id="slot2">
-        <input type="file" id="fileIn2" accept="audio/*" style="display:none">
+        <input type="file" id="fileIn2" accept="audio/*,video/*" style="display:none">
         <div class="slot-tag">INPUT 2 — CARRIER (optional)</div>
         <div class="slot-label" id="slot2Label">CLICK / DROP</div>
         <div class="slot-name" id="file2Name">no file — using OSC</div>
@@ -186,8 +188,8 @@
         <div>
           <div style="font-size:9px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;">CARRIER SOURCE</div>
           <div class="carrier-src">
-            <button class="src-btn active" id="srcOsc" onclick="setCarrierSrc('osc')">OSC</button>
-            <button class="src-btn" id="srcFile" onclick="setCarrierSrc('file')">FILE 2</button>
+            <button class="src-btn active" id="srcOsc" onclick="setCarrierSrc(&#39;osc&#39;)">OSC</button>
+            <button class="src-btn" id="srcFile" onclick="setCarrierSrc(&#39;file&#39;)">FILE 2</button>
           </div>
         </div>
         <div class="transport">
@@ -207,12 +209,12 @@
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="transport-btn" id="renderBtn" onclick="renderWav()" style="flex:1;">⬇ SAVE WAV</button>
-          <input type="text" id="renderSecs" value="10" placeholder="sec / L" style="width:44px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 6px;text-align:center;" title="seconds or L for input length">
+          <input type="text" id="renderSecs" value="10" placeholder="sec / L" style="width:44px;background:var(--surface);color:var(--text);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:10px;padding:4px 6px;text-align:center;" title="seconds or L for input length">
           <span style="font-size:9px;color:var(--text-dim);">SEC/L</span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="transport-btn" onclick="saveConfig()" style="flex:1;">⬇ SAVE CONFIG</button>
-          <button class="transport-btn" onclick="document.getElementById('configFileIn').click()" style="flex:1;">⬆ LOAD CONFIG</button>
+          <button class="transport-btn" onclick="document.getElementById(&#39;configFileIn&#39;).click()" style="flex:1;">⬆ LOAD CONFIG</button>
           <input type="file" id="configFileIn" accept=".json" style="display:none">
         </div>
         <div style="display:flex;gap:8px;align-items:center;padding:4px 2px;">
@@ -228,11 +230,30 @@
     </div>
   </div>
 
+  <!-- INPUT 1 SCRIPT -->
+  <div class="module" id="in1scriptModule">
+    <div class="module-header">
+      <div><div class="module-title">INPUT 1 SCRIPT</div><div class="module-sub">User JS — pre-vocoder on Input 1</div></div>
+      <div class="module-bypass" id="in1scriptBypass" onclick="toggleBypass(&#39;in1script&#39;)"><span>BYPASS</span><div class="toggle-dot"></div></div>
+    </div>
+    <div class="module-body">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <button class="transport-btn" onclick="applyIn1ScriptCode()" style="padding:6px 10px;font-size:9px;">APPLY (CTRL+ENTER)</button>
+        <button class="transport-btn" onclick="resetIn1ScriptCode()" style="padding:6px 10px;font-size:9px;">RESET CODE</button>
+        <span id="in1ScriptMsg" style="font-size:9px;color:var(--text-dim);letter-spacing:1px;">READY</span>
+      </div>
+      <textarea id="in1ScriptBox" spellcheck="false" style="width:100%;min-height:220px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:10px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.35;outline:none;"></textarea>
+      <div style="margin-top:8px;font-size:9px;color:var(--text-dim);letter-spacing:1px;">
+        Must end with: <span style="color:var(--accent);">return (t, sr, audio) =&gt; { ... }</span> where <span style="color:var(--accent);">t</span> is the ScriptProcessor node age (seconds) and <span style="color:var(--accent);">audio</span> is <span style="color:var(--accent);">[L, R]</span>. Return a number (mono) or <span style="color:var(--accent);">[L, R]</span>.
+      </div>
+    </div>
+  </div>
+
   <!-- VOCODER -->
   <div class="module" id="vocModule">
     <div class="module-header">
       <div><div class="module-title">VOCODER</div><div class="module-sub">Phase vocoder — channel source</div></div>
-      <div class="module-bypass on" id="vocBypass" onclick="toggleBypass('voc')"><span>ACTIVE</span><div class="toggle-dot"></div></div>
+      <div class="module-bypass on" id="vocBypass" onclick="toggleBypass(&#39;voc&#39;)"><span>ACTIVE</span><div class="toggle-dot"></div></div>
     </div>
     <div class="module-body">
       <div class="ctrl-grid">
@@ -244,6 +265,8 @@
         <div class="ctrl-row"><div class="ctrl-label">WET <span class="ctrl-val" id="voc_wet_val">1.00</span></div><input type="range" id="sl_voc_wet" min="0" max="1" step="0.01" value="1"></div>
         <div class="ctrl-row"><div class="ctrl-label">OUTPUT GAIN <span class="ctrl-val" id="voc_gain_val">2000</span></div><input type="range" id="sl_voc_gain" min="1" max="50000" step="1" value="2000"></div>
         <div class="ctrl-row"><div class="ctrl-label">FILTER ITER <span class="ctrl-val" id="voc_iter_val">2</span></div><input type="range" id="sl_voc_iter" min="1" max="4" step="1" value="2"></div>
+        <div class="ctrl-row"><div class="ctrl-label">CROSSOVER <span class="ctrl-val" id="voc_xover_val">OFF</span></div><div class="module-bypass" id="vocXoverToggle" onclick="toggleVocXover()"><span>OFF</span><div class="toggle-dot"></div></div></div>
+        <div class="ctrl-row"><div class="ctrl-label">CROSS NORM DECAY <span class="ctrl-val" id="voc_xdecay_val">0.999900</span></div><input type="range" id="sl_voc_xdecay" min="0.999" max="1" step="0.000001" value="0.9999"></div>
       </div>
     </div>
   </div>
@@ -252,13 +275,13 @@
   <div class="module mbc-module" id="mbcModule">
     <div class="module-header">
       <div><div class="module-title">MULTIBAND COMP</div><div class="module-sub">3-band dynamic processor</div></div>
-      <div class="module-bypass mbc-accent on" id="mbcBypass" onclick="toggleBypass('mbc')"><span>ACTIVE</span><div class="toggle-dot"></div></div>
+      <div class="module-bypass mbc-accent on" id="mbcBypass" onclick="toggleBypass(&#39;mbc&#39;)"><span>ACTIVE</span><div class="toggle-dot"></div></div>
     </div>
     <div class="module-body">
       <div class="ctrl-grid">
         <div class="ctrl-row"><div class="ctrl-label">RATIO <span class="ctrl-val" id="mbc_ratio_val">2.0</span></div><input type="range" id="sl_mbc_ratio" min="1" max="20" step="0.1" value="2"></div>
         <div class="ctrl-row"><div class="ctrl-label">ATTACK <span class="ctrl-val" id="mbc_attack_val">0.010</span></div><input type="range" id="sl_mbc_attack" min="0" max="0.1" step="0.001" value="0.01"></div>
-        <div class="ctrl-row"><div class="ctrl-label">DECAY <span class="ctrl-val" id="mbc_decay_val">0.0010</span></div><input type="range" id="sl_mbc_decay" min="0.0001" max="0.1" step="0.0001" value="0.001"></div>
+        <div class="ctrl-row"><div class="ctrl-label">DECAY <span class="ctrl-val" id="mbc_decay_val">0.0001</span></div><input type="range" id="sl_mbc_decay" min="0.0001" max="0.1" step="0.0001" value="0.001"></div>
         <div class="ctrl-row"><div class="ctrl-label">FILTER ITER <span class="ctrl-val" id="mbc_filterIter_val">2</span></div><input type="range" id="sl_mbc_filterIter" min="1" max="4" step="1" value="2"></div>
         <div class="ctrl-row"><div class="ctrl-label">Q <span class="ctrl-val" id="mbc_q_val">0.30</span></div><input type="range" id="sl_mbc_q" min="0" max="1" step="0.01" value="0.3"></div>
         <div class="ctrl-row"><div class="ctrl-label">FREQ LOW <span class="ctrl-val" id="mbc_freqLow_val">200 Hz</span></div><input type="range" id="mbc_freqLow" min="50" max="800" step="1" value="200"></div>
@@ -276,16 +299,16 @@
   <div class="module osc-module" id="oscModule">
     <div class="module-header">
       <div><div class="module-title">OSCILLATOR</div><div class="module-sub">Carrier signal generator</div></div>
-      <div class="module-bypass osc-accent on" id="oscBypass" onclick="toggleBypass('osc')"><span>ACTIVE</span><div class="toggle-dot"></div></div>
+      <div class="module-bypass osc-accent on" id="oscBypass" onclick="toggleBypass(&#39;osc&#39;)"><span>ACTIVE</span><div class="toggle-dot"></div></div>
     </div>
     <div class="module-body" style="display:flex;flex-direction:column;gap:16px;">
       <div class="wave-group">
         <div class="wave-label">WAVEFORM</div>
         <div class="wave-btns">
-          <button class="wave-btn" data-wave="sine" onclick="setWave('sine')"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0 7 Q7 0 14 7 Q21 14 28 7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>SINE</button>
-          <button class="wave-btn active" data-wave="sawtooth" onclick="setWave('sawtooth')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>SAW</button>
-          <button class="wave-btn" data-wave="square" onclick="setWave('square')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>SQR</button>
-          <button class="wave-btn" data-wave="triangle" onclick="setWave('triangle')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>TRI</button>
+          <button class="wave-btn" data-wave="sine" onclick="setWave(&#39;sine&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0 7 Q7 0 14 7 Q21 14 28 7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>SINE</button>
+          <button class="wave-btn active" data-wave="sawtooth" onclick="setWave(&#39;sawtooth&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SAW</button>
+          <button class="wave-btn" data-wave="square" onclick="setWave(&#39;square&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SQR</button>
+          <button class="wave-btn" data-wave="triangle" onclick="setWave(&#39;triangle&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>TRI</button>
         </div>
       </div>
       <div class="ctrl-grid">
@@ -298,7 +321,7 @@
         <div class="ctrl-grid">
           <div class="ctrl-row">
             <div class="ctrl-label" style="margin-bottom:4px;">TYPE</div>
-            <select id="osc_filterType" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:5px 8px;">
+            <select id="osc_filterType" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:9px;padding:5px 8px;">
               <option value="off">OFF</option><option value="lowpass">LOWPASS</option><option value="highpass">HIGHPASS</option><option value="bandpass">BANDPASS</option><option value="notch">NOTCH</option>
             </select>
           </div>
@@ -334,13 +357,13 @@
         <div class="ctrl-grid">
           <div class="ctrl-row">
             <div class="ctrl-label" style="margin-bottom:4px;">TARGET</div>
-            <select id="osc_lfoTarget" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:5px 8px;">
+            <select id="osc_lfoTarget" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:9px;padding:5px 8px;">
               <option value="filter">FILTER</option><option value="gain">GAIN</option><option value="pitch">PITCH</option>
             </select>
           </div>
           <div class="ctrl-row">
             <div class="ctrl-label" style="margin-bottom:4px;">SHAPE</div>
-            <select id="osc_lfoShape" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:5px 8px;">
+            <select id="osc_lfoShape" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:9px;padding:5px 8px;">
               <option value="sine">SINE</option><option value="square">SQUARE</option><option value="sawtooth">SAW</option><option value="triangle">TRI</option>
             </select>
           </div>
@@ -412,23 +435,81 @@ function _hpfCoeffs(fc,q,sr){
   const w0=2*Math.PI*fc/sr,cosw0=Math.cos(w0),sinw0=Math.sin(w0),alpha=sinw0*(1-q),a0=1+alpha
   return{b0:(1+cosw0)/2/a0,b1:-(1+cosw0)/a0,b2:(1+cosw0)/2/a0,a1:-2*cosw0/a0,a2:(1-alpha)/a0}
 }
-function _getVocState(sr,o){
-  const n=Math.max(1,o.filterIter|0),k=_key(sr,o.bands,o.q,n)
+function _getVocState(sr,o,ch=0){
+  const n=Math.max(1,o.filterIter|0)
+  const xover=!!o.crossover
+  const k=_key(sr,o.bands,o.q,n)+(xover?"_x":"")+`_ch${ch|0}`
   if(_state.has(k))return _state.get(k)
   const bands=o.bands
-  const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
-  const bqCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
   const{a1:atkA1,b0:atkB0}=_lpCoeffs(1/o.envAttack,sr)
   const{a1:relA1,b0:relB0}=_lpCoeffs(1/o.envRelease,sr)
-  const modStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
-  const carStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
-  const modCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
-  const st={bqCoeffs,modCoeffs,n,modStates,carStates,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,q:o.q,freqLow:o.freqLow,freqHigh:o.freqHigh}
+
+  let st
+  if(xover){
+    const xFreqs=Array.from({length:bands-1},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,(i+1)/bands))
+    const lpCoeffs=xFreqs.map(fc=>_lpfCoeffs(fc,o.q,sr))
+    const hpCoeffs=xFreqs.map(fc=>_hpfCoeffs(fc,o.q,sr))
+    const _mkStages=()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0}))
+    const modXover=Array.from({length:bands-1},()=>({lp:_mkStages(),hp:_mkStages()}))
+    const carXover=Array.from({length:bands-1},()=>({lp:_mkStages(),hp:_mkStages()}))
+    st={xover:true,n,lpCoeffs,hpCoeffs,modXover,carXover,envStates:new Float64Array(bands),rectUiStates:new Float32Array(bands),atkA1,atkB0,relA1,relB0,peakEnv:0}
+  }else{
+    const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
+    const bqCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
+    const modStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
+    const carStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
+    const modCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
+    st={xover:false,bqCoeffs,modCoeffs,n,modStates,carStates,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,q:o.q,freqLow:o.freqLow,freqHigh:o.freqHigh}
+  }
   _state.set(k,st);return st
 }
 
+function _xoverSplit(x,xoverNodes,lpCoeffs,hpCoeffs,n,bands){
+  const out=new Array(bands)
+  let rem=x
+  for(let i=0;i<bands-1;i++){
+    out[i]=_bqTickN(rem,xoverNodes[i].lp,lpCoeffs[i],n)
+    rem=_bqTickN(rem,xoverNodes[i].hp,hpCoeffs[i],n)
+  }
+  out[bands-1]=rem
+  return out
+}
+
 function _processSample(mod,car,sr,o,st){
-  let out=0;const bands=o.bands,shift=o.shift??0
+  let out=0
+  const bands=o.bands
+  if(st.xover){
+    const modBands=_xoverSplit(mod,st.modXover,st.lpCoeffs,st.hpCoeffs,st.n,bands)
+    const carBands=_xoverSplit(car,st.carXover,st.lpCoeffs,st.hpCoeffs,st.n,bands)
+    const shift=o.shift==null?1:Math.pow(2,(o.shift||0)/12)
+    const logRange=Math.log(o.freqHigh/o.freqLow)
+
+    for(let b=0;b<bands;b++){
+      const rect=Math.abs(modBands[b])
+      if(st.rectUiStates) st.rectUiStates[b]=rect/Math.sqrt((st.peakEnv+1e-9)*400)
+      const prev=st.envStates[b]
+      st.envStates[b]=rect>prev?st.atkB0*rect+st.atkA1*prev:st.relB0*rect+st.relA1*prev
+    }
+
+    for(let b=0;b<bands;b++){
+      const fc=o.freqLow*Math.pow(o.freqHigh/o.freqLow,b/(bands-1))
+      const fcShifted=fc/shift
+      const srcB=Math.min(bands-1,Math.max(0,Math.round((Math.log(fcShifted/o.freqLow)/logRange)*(bands-1))))
+      const eqG=o.eqGains?o.eqGains[Math.min(b,o.eqGains.length-1)]:1
+      out+=carBands[b]*st.envStates[srcB]*eqG
+    }
+
+    const decay=Math.max(0.999,Math.min(1,o.xDecay==null?0.9999:o.xDecay))
+    st.peakEnv=Math.max(Math.abs(out),st.peakEnv*decay)
+    out/=(st.peakEnv+1e-9)*400
+
+    out=out*o.outputGain/8
+    if(o.wet<1)out=out*o.wet+car*(1-o.wet)
+    //out=Math.max(-1,Math.min(1,out))
+    return out
+  }
+
+  const shift=o.shift??0
   if(!st.modCoeffs){st.modCoeffs=st.bqCoeffs.map(c=>({...c}));st.lastShift=null}
   if(st.lastShift!==shift){
     st.lastShift=shift
@@ -560,8 +641,9 @@ function buildEqGains(bands){
 // UI STATE
 // ═══════════════════════════════════════════════════════
 const uiState = {
-  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,wet:1.0,gain:2000,iter:2,active:true},
+  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,wet:1.0,gain:2000,iter:2,crossover:false,xDecay:0.9999,active:true},
   mbc:{ratio:2,attack:0.01,decay:0.001,filterIter:2,q:0.3,freqs:[200,200,3000,3000],thresholds:[1,0.75,1],active:true},
+  in1script:{active:false,code:''},
   osc:{wave:'sawtooth',gain:0.1,super:8,detune:0.15,notes:[30,42,54,57,61,66],active:true,
     filterType:'off',filterCutoff:8000,filterRes:0.707,filterPoles:1,filterMulti:false,filterPitchTrack:0,
     distAmount:0,delayMs:0,delayFb:0,delayMix:0,
@@ -576,6 +658,80 @@ const uiState = {
 }
 
 // ═══════════════════════════════════════════════════════
+const DEFAULT_IN1_SCRIPT=
+`// Define helper functions/constants above.
+// Must end with: return (t, sr, audio) => { ... }
+// audio is [L, R]. Return a number (mono) or [L, R].
+
+return (t, sr, audio) => {
+  return audio
+}
+`
+let _in1ScriptFn=null
+let _in1ScriptTime=0
+let _in1ScriptStartT=null
+const _in1TmpLR=[0,0]
+
+function _setIn1ScriptMsg(msg,ok=true){
+  const el=document.getElementById('in1ScriptMsg')
+  if(!el) return
+  el.textContent=msg
+  el.style.color=ok?'var(--accent)':'var(--accent2)'
+}
+function _compileIn1Script(code){
+  try{
+    const fn=new Function('Math','"use strict"; return (function(){\n'+code+'\n})();')(Math)
+    if(typeof fn!=='function') throw new Error('Script must return a function.')
+    _in1ScriptFn=fn
+    _setIn1ScriptMsg('OK',true)
+    return true
+  }catch(err){
+    _in1ScriptFn=null
+    _setIn1ScriptMsg('ERROR: '+(err?.message||String(err)),false)
+    return false
+  }
+}
+function applyIn1ScriptCode(){
+  const ta=document.getElementById('in1ScriptBox')
+  if(!ta) return
+  uiState.in1script.code=ta.value
+  _compileIn1Script(uiState.in1script.code)
+}
+function resetIn1ScriptCode(){
+  const ta=document.getElementById('in1ScriptBox')
+  if(!ta) return
+  ta.value=DEFAULT_IN1_SCRIPT
+  uiState.in1script.code=ta.value
+  _compileIn1Script(uiState.in1script.code)
+}
+function initIn1ScriptUi(){
+  const ta=document.getElementById('in1ScriptBox')
+  if(!ta) return
+  if(!uiState.in1script.code) uiState.in1script.code=DEFAULT_IN1_SCRIPT
+  ta.value=uiState.in1script.code
+  _compileIn1Script(uiState.in1script.code)
+  ta.addEventListener('input',()=>{uiState.in1script.code=ta.value})
+  ta.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();applyIn1ScriptCode()}
+  })
+}
+function _applyIn1ScriptOnce(t,sr,l,r,outLR){
+  outLR[0]=l;outLR[1]=r
+  if(!uiState.in1script.active||!_in1ScriptFn) return
+  try{
+    const ret=_in1ScriptFn(t,sr,[l,r])
+    if(Array.isArray(ret)){outLR[0]=ret[0]??0;outLR[1]=ret[1]??0;return}
+    if(typeof ret==='number'){outLR[0]=ret;outLR[1]=ret;return}
+    return
+  }catch(err){
+    uiState.in1script.active=false
+    const el=document.getElementById('in1scriptBypass'),sp=el?.querySelector('span')
+    if(el){el.classList.remove('on');if(sp)sp.textContent='BYPASS'}
+    _setIn1ScriptMsg('RUNTIME ERROR: '+(err?.message||String(err)),false)
+    return
+  }
+}
+
 // AUDIO ENGINE
 // ═══════════════════════════════════════════════════════
 let audioCtx=null,scriptNode=null,gainNode=null
@@ -591,23 +747,16 @@ let bandEnvPeakTimer=new Float32Array(256)
 function buildVocOpts(){
   const v=uiState.voc
   const eqGains=buildEqGains(v.bands)
-  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,wet:v.wet,outputGain:v.gain,eqGains}
-  if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,wet:v.wet,outputGain:v.gain,eqGains}
+  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,crossover:!!v.crossover,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
+  if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,crossover:!!v.crossover,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
 }
 function rebuildVocState(){
   if(!audioCtx)return
   for(const k of _state.keys()){if(/^\d/.test(k))_state.delete(k)}
   buildVocOpts()
-  vocState=_getVocState(audioCtx.sampleRate,vocOpts)
+  vocState=_getVocState(audioCtx.sampleRate,vocOpts,0)
   vocOptsR={...vocOpts,shift:vocOpts.shift+uiState.stereoWidth*0.5}
-  const n=Math.max(1,vocOptsR.filterIter|0),bands=vocOptsR.bands,sr=audioCtx.sampleRate
-  const centres=Array.from({length:bands},(_,i)=>vocOptsR.freqLow*Math.pow(vocOptsR.freqHigh/vocOptsR.freqLow,i/(bands-1)))
-  const bqCoeffs=centres.map(fc=>_bqCoeffs(fc,vocOptsR.q,sr))
-  const{a1:atkA1,b0:atkB0}=_lpCoeffs(1/vocOptsR.envAttack,sr)
-  const{a1:relA1,b0:relB0}=_lpCoeffs(1/vocOptsR.envRelease,sr)
-  const modStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
-  const carStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
-  vocStateR={bqCoeffs,modCoeffs:centres.map(fc=>_bqCoeffs(fc,vocOptsR.q,sr)),n,modStates,carStates,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,q:vocOptsR.q,freqLow:vocOptsR.freqLow,freqHigh:vocOptsR.freqHigh}
+  vocStateR=_getVocState(audioCtx.sampleRate,vocOptsR,1)
 }
 function flushMbc(){for(const k of _state.keys()){if(k.startsWith('mbc')||k.startsWith('rms'))_state.delete(k)}}
 function applyOscParams(osc){
@@ -637,12 +786,17 @@ async function startAudio(){
   if(scriptNode){scriptNode.disconnect();scriptNode=null}
   for(const k of _state.keys()){if(k.startsWith('mbc')||k.startsWith('rms'))_state.delete(k)}
   buildLiveOsc();rebuildVocState();buildVocOpts();mod1Pos=0;mod2Pos=0
+  if(uiState.in1script.active) applyIn1ScriptCode()
+  _in1ScriptTime=0
+  _in1ScriptStartT=null
   scriptNode=audioCtx.createScriptProcessor(2048,0,2)
   gainNode=audioCtx.createGain();gainNode.gain.value=1
   scriptNode.onaudioprocess=(e)=>{
     const outL=e.outputBuffer.getChannelData(0),outR=e.outputBuffer.getChannelData(1),sr=audioCtx.sampleRate
     buildVocOpts()
     const mbcOpts={freqs:[...uiState.mbc.freqs],thresholds:[...uiState.mbc.thresholds],ratio:uiState.mbc.ratio,decay:uiState.mbc.decay,attack:uiState.mbc.attack,filterIter:uiState.mbc.filterIter,q:uiState.mbc.q}
+    if(_in1ScriptStartT===null) _in1ScriptStartT=e.playbackTime
+    const baseT=e.playbackTime-(_in1ScriptStartT||0)
     const kbNotes=getKbActiveNotes()
     if(kbNotes.length){
       if(liveOsc){liveOsc.setSemitones(kbNotes);liveOsc.superSet(uiState.osc.super,uiState.osc.detune,1)}
@@ -651,8 +805,9 @@ async function startAudio(){
     const stereo=uiState.stereo,vsR=stereo?(vocStateR||vocState):vocState,voOptsR=stereo?(vocOptsR||vocOpts):vocOpts
     for(let i=0;i<outL.length;i++){
       const pos=mod1Pos%mod1Buffer.length;mod1Pos++
-      const modL=mod1BufferL?mod1BufferL[pos]:mod1Buffer[pos]
-      const modR=(stereo&&mod1BufferR)?mod1BufferR[pos]:modL
+      let modL=mod1BufferL?mod1BufferL[pos]:mod1Buffer[pos]
+      let modR=(stereo&&mod1BufferR)?mod1BufferR[pos]:modL
+      _applyIn1ScriptOnce(baseT+i/sr,sr,modL,modR,_in1TmpLR);modL=_in1TmpLR[0];modR=_in1TmpLR[1]
       let carL,carR
       if(uiState.carrierSrc==='file'&&mod2Buffer){
         const p=mod2Pos%mod2BufferL.length;mod2Pos++;carL=mod2BufferL[p];carR=stereo?mod2BufferR[p]:carL
@@ -665,7 +820,7 @@ async function startAudio(){
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
     if(uiState.voc.active&&vocState&&vocState.envStates){
-      const env=vocState.envStates
+      const env=(vocState.xover&&vocState.rectUiStates)?vocState.rectUiStates:vocState.envStates
       if(bandEnvDisplay.length!==env.length){bandEnvDisplay=new Float32Array(env.length);bandEnvPeak=new Float32Array(env.length);bandEnvPeakTimer=new Float32Array(env.length)}
       for(let b=0;b<env.length;b++){
         const v=env[b];bandEnvDisplay[b]+=(v-bandEnvDisplay[b])*0.75
@@ -698,6 +853,70 @@ function stopAudio(){
   bandEnvDisplay.fill(0);bandEnvPeak.fill(0);bandEnvPeakTimer.fill(0)
 }
 function togglePlay(){if(isPlaying)stopAudio();else startAudio()}
+function _pickMediaRecorderMime(){
+  if(typeof MediaRecorder==='undefined') return null
+  const candidates=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg']
+  for(const t of candidates){
+    try{ if(MediaRecorder.isTypeSupported(t)) return t }catch(_){}
+  }
+  return ''
+}
+async function _extractAudioArrayBufferFromVideo(file){
+  if(typeof MediaRecorder==='undefined') throw new Error('Video audio extraction requires MediaRecorder support in this browser.')
+  const video=document.createElement('video')
+  video.src=URL.createObjectURL(file)
+  video.muted=true
+  video.playsInline=true
+  video.preload='auto'
+
+  const cleanup=()=>{
+    try{URL.revokeObjectURL(video.src)}catch(_){}
+    try{video.pause()}catch(_){}
+    try{video.remove()}catch(_){}
+  }
+
+  await new Promise((resolve,reject)=>{
+    const onErr=()=>{cleanup();reject(new Error('Could not load video.'))}
+    const onOk=()=>{video.removeEventListener('error',onErr);resolve()}
+    video.addEventListener('canplaythrough',onOk,{once:true})
+    video.addEventListener('error',onErr,{once:true})
+  })
+  video.currentTime=0
+
+  const ac=new (window.AudioContext||window.webkitAudioContext)()
+  if(ac.state==='suspended'){ try{await ac.resume()}catch(_){ /* ignore */ } }
+  const src=ac.createMediaElementSource(video)
+  const dest=ac.createMediaStreamDestination()
+  src.connect(dest)
+  // Keep graph alive without making noise.
+  const z=ac.createGain();z.gain.value=0;src.connect(z);z.connect(ac.destination)
+
+  const mime=_pickMediaRecorderMime()
+  if(mime===null) throw new Error('MediaRecorder not supported.')
+  const rec=new MediaRecorder(dest.stream, mime?{mimeType:mime}:undefined)
+  const chunks=[]
+
+  const stopped=new Promise((resolve,reject)=>{
+    rec.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data) }
+    rec.onerror=e=>reject(e.error || e)
+    rec.onstop=()=>resolve()
+  })
+
+  rec.start()
+  await video.play()
+  await new Promise(resolve=>video.addEventListener('ended',resolve,{once:true}))
+  if(rec.state!=='inactive') rec.stop()
+  await stopped
+
+  const blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'})
+  const ab=await blob.arrayBuffer()
+
+  cleanup()
+  try{src.disconnect()}catch(_){}
+  try{z.disconnect()}catch(_){}
+  try{await ac.close()}catch(_){}
+  return ab
+}
 async function loadAudioFile(file,slot){
   const reader=new FileReader()
   reader.onload=async(ev)=>{
@@ -708,8 +927,19 @@ async function loadAudioFile(file,slot){
     // (common on mobile), preventing the ~0.9× speed shift.
     const tmpCtx=new(window.AudioContext||window.webkitAudioContext)()
     try{
-      const nativeDecoded=await tmpCtx.decodeAudioData(ev.target.result)
-      await tmpCtx.close()
+      let nativeDecoded
+      try{
+        nativeDecoded=await tmpCtx.decodeAudioData(ev.target.result)
+      }catch(err){
+        if(file.type && file.type.startsWith('video/')){
+          const audioAb=await _extractAudioArrayBufferFromVideo(file)
+          nativeDecoded=await tmpCtx.decodeAudioData(audioAb)
+        }else{
+          throw err
+        }
+      }finally{
+        try{await tmpCtx.close()}catch(_){}
+      }
       const ch=nativeDecoded.numberOfChannels
       const resampledLen=Math.ceil(nativeDecoded.duration*TARGET_SR)
       const offCtx=new OfflineAudioContext(ch,resampledLen,TARGET_SR)
@@ -734,7 +964,7 @@ async function loadAudioFile(file,slot){
         drawWaveform(mono,'waveCanvas2','#a8ff3e')
       }
       if(isPlaying){stopAudio();startAudio()}
-    }catch(err){alert('Could not decode audio: '+err.message)}
+    }catch(err){alert('Could not decode audio: '+(err&&err.message?err.message:err))}
   }
   reader.readAsArrayBuffer(file)
 }
@@ -774,6 +1004,7 @@ const sliderDefs=[
   {id:'sl_voc_wet',valId:'voc_wet_val',fmt:v=>v.toFixed(2),cb:v=>uiState.voc.wet=v},
   {id:'sl_voc_gain',valId:'voc_gain_val',fmt:v=>Math.round(v)+'',cb:v=>uiState.voc.gain=Math.round(v)},
   {id:'sl_voc_iter',valId:'voc_iter_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.voc.iter=Math.round(v);rebuildVocState()}},
+  {id:'sl_voc_xdecay',valId:'voc_xdecay_val',fmt:v=>v.toFixed(6),cb:v=>uiState.voc.xDecay=v},
   {id:'sl_mbc_ratio',valId:'mbc_ratio_val',fmt:v=>v.toFixed(1),cb:v=>uiState.mbc.ratio=v},
   {id:'sl_mbc_attack',valId:'mbc_attack_val',fmt:v=>v.toFixed(3),cb:v=>uiState.mbc.attack=v},
   {id:'sl_mbc_decay',valId:'mbc_decay_val',fmt:v=>v.toFixed(4),cb:v=>uiState.mbc.decay=v},
@@ -827,11 +1058,23 @@ function initSliders(){
       })
     }
   })
+  syncVocXoverUi()
 }
 function toggleBypass(mod){
   uiState[mod].active=!uiState[mod].active
   const el=document.getElementById(mod+'Bypass'),sp=el.querySelector('span')
   el.classList.toggle('on',uiState[mod].active);sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'
+}
+function toggleVocXover(){
+  uiState.voc.crossover=!uiState.voc.crossover
+  syncVocXoverUi();rebuildVocState()
+}
+function syncVocXoverUi(){
+  const el=document.getElementById('vocXoverToggle'),sp=el?.querySelector('span'),val=document.getElementById('voc_xover_val')
+  if(!el)return
+  el.classList.toggle('on',!!uiState.voc.crossover)
+  if(sp)sp.textContent=uiState.voc.crossover?'ON':'OFF'
+  if(val)val.textContent=uiState.voc.crossover?'ON':'OFF'
 }
 function setWave(w){
   uiState.osc.wave=w
@@ -918,7 +1161,9 @@ function buildKbKeys(){
   }
 }
 
-// Config save/load
+// ═══════════════════════════════════════════════════════
+// CONFIG SAVE / LOAD
+// ═══════════════════════════════════════════════════════
 function float32ToBase64(buf){const bytes=new Uint8Array(buf.buffer,buf.byteOffset,buf.byteLength);let bin='';for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin)}
 function base64ToFloat32(b64){const bin=atob(b64),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return new Float32Array(bytes.buffer)}
 function saveConfig(){
@@ -938,16 +1183,46 @@ function loadConfig(){
       const cfg=JSON.parse(e.target.result)
       if(cfg.voc)Object.assign(uiState.voc,cfg.voc)
       if(cfg.mbc)Object.assign(uiState.mbc,cfg.mbc)
+      if(cfg.in1script)Object.assign(uiState.in1script,cfg.in1script)
       if(cfg.osc)Object.assign(uiState.osc,cfg.osc)
       if(cfg.eq)Object.assign(uiState.eq,cfg.eq)
+      // Back-compat: some configs stored mbc.decay as a pole near 1 (e.g. 0.999).
+      // This build expects a small smoothing coefficient (0.0001..0.1).
+      if(cfg.mbc&&cfg.mbc.decay!==undefined&&uiState.mbc.decay>0.5) uiState.mbc.decay=1-uiState.mbc.decay
       if(cfg.carrierSrc!==undefined)uiState.carrierSrc=cfg.carrierSrc
       if(cfg.masterVol!==undefined)uiState.masterVol=cfg.masterVol
       if(cfg.stereo!==undefined)uiState.stereo=cfg.stereo
       if(cfg.stereoWidth!==undefined)uiState.stereoWidth=cfg.stereoWidth
-      if(cfg._audio1L){mod1BufferL=base64ToFloat32(cfg._audio1L);mod1BufferR=cfg._audio1R?base64ToFloat32(cfg._audio1R):mod1BufferL;mod1Buffer=new Float32Array(mod1BufferL.length);for(let i=0;i<mod1BufferL.length;i++)mod1Buffer[i]=mod1BufferR!==mod1BufferL?(mod1BufferL[i]+mod1BufferR[i])*0.5:mod1BufferL[i];document.getElementById('file1Name').textContent=cfg._audio1name||'restored';document.getElementById('slot1Label').textContent='LOADED';document.getElementById('slot1').classList.add('loaded');drawWaveform(mod1Buffer,'waveCanvas1','#00e5ff')}
-      if(cfg._audio2L){mod2BufferL=base64ToFloat32(cfg._audio2L);mod2BufferR=cfg._audio2R?base64ToFloat32(cfg._audio2R):mod2BufferL;mod2Buffer=mod2BufferL;document.getElementById('file2Name').textContent=cfg._audio2name||'restored';document.getElementById('slot2Label').textContent='LOADED';document.getElementById('slot2').classList.add('loaded');drawWaveform(mod2BufferL,'waveCanvas2','#a8ff3e')}
+      if(cfg._audio1L){
+        mod1BufferL=base64ToFloat32(cfg._audio1L)
+        mod1BufferR=cfg._audio1R?base64ToFloat32(cfg._audio1R):mod1BufferL
+        mod1Buffer=new Float32Array(mod1BufferL.length)
+        for(let i=0;i<mod1BufferL.length;i++)mod1Buffer[i]=(mod1BufferL[i]+mod1BufferR[i])*0.5
+        document.getElementById('file1Name').textContent=cfg._audio1name||'restored'
+        document.getElementById('slot1Label').textContent='LOADED'
+        document.getElementById('slot1').classList.add('loaded')
+        drawWaveform(mod1Buffer,'waveCanvas1','#00e5ff')
+      }
+      if(cfg._audio2L){
+        mod2BufferL=base64ToFloat32(cfg._audio2L)
+        mod2BufferR=cfg._audio2R?base64ToFloat32(cfg._audio2R):mod2BufferL
+        mod2Buffer=new Float32Array(mod2BufferL.length)
+        for(let i=0;i<mod2BufferL.length;i++)mod2Buffer[i]=(mod2BufferL[i]+mod2BufferR[i])*0.5
+        document.getElementById('file2Name').textContent=cfg._audio2name||'restored'
+        document.getElementById('slot2Label').textContent='LOADED'
+        document.getElementById('slot2').classList.add('loaded')
+        drawWaveform(mod2Buffer,'waveCanvas2','#a8ff3e')
+      }
       syncUiFromState()
-      if(cfg._activeNotes){clearAllKbNotes();cfg._activeNotes.forEach(midi=>{const container=document.getElementById('synthKeyboardContainer');const keyEl=[...container.children].find(k=>parseInt(k.dataset.midi)===midi);if(!keyEl)return;kbActiveNotes.add(midi);keyEl.classList.add('active')});syncOscNotes()}
+      if(cfg._activeNotes){
+        clearAllKbNotes()
+        cfg._activeNotes.forEach(midi=>{
+          const container=document.getElementById('synthKeyboardContainer')
+          const keyEl=[...container.children].find(k=>parseInt(k.dataset.midi)===midi)
+          if(!keyEl)return;kbActiveNotes.add(midi);keyEl.classList.add('active')
+        })
+        syncOscNotes()
+      }
       if(isPlaying){stopAudio();startAudio()}
     }catch(err){alert('Failed to load config: '+err.message)}
     input.value=''
@@ -960,24 +1235,30 @@ function syncUiFromState(){
     const v=getStateValForSlider(id);if(v===null)return
     el.value=v;if(lbl)lbl.textContent=fmt(v);cb(v)
   })
+  syncVocXoverUi()
   const mv=document.getElementById('masterVol'),mvv=document.getElementById('masterVolVal');if(mv){mv.value=uiState.masterVol;mvv.textContent=uiState.masterVol.toFixed(2)}
   document.getElementById('stereoToggle').classList.toggle('on',uiState.stereo)
   const sw=document.getElementById('stereoWidth'),swv=document.getElementById('stereoWidthVal');if(sw){sw.value=uiState.stereoWidth;swv.textContent=uiState.stereoWidth.toFixed(2)}
   setCarrierSrc(uiState.carrierSrc);setWave(uiState.osc.wave)
-  ;['voc','mbc','osc'].forEach(mod=>{const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span');if(el){el.classList.toggle('on',uiState[mod].active);if(sp)sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'}})
+  ;['voc','mbc','in1script','osc'].forEach(mod=>{const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span');if(el){el.classList.toggle('on',uiState[mod].active);if(sp)sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'}})
   const ft=document.getElementById('osc_filterType');if(ft)ft.value=uiState.osc.filterType
   const lt=document.getElementById('osc_lfoTarget');if(lt)lt.value=uiState.osc.lfoTarget
   const ls=document.getElementById('osc_lfoShape');if(ls)ls.value=uiState.osc.lfoShape
   const fmt2=document.getElementById('filterMultiToggle'),fsp=fmt2?.querySelector('span');if(fmt2){fmt2.classList.toggle('on',uiState.osc.filterMulti);if(fsp)fsp.textContent=uiState.osc.filterMulti?'ON':'OFF'}
   const lft=document.getElementById('lfoToggle'),lsp=lft?.querySelector('span');if(lft){lft.classList.toggle('on',uiState.osc.lfoEnabled);if(lsp)lsp.textContent=uiState.osc.lfoEnabled?'ON':'OFF'}
-  // Sync EQ toggle
   const eqEl=document.getElementById('eqToggle'),eqSp=eqEl?.querySelector('span')
   if(eqEl){eqEl.classList.toggle('on',uiState.eq.active);if(eqSp)eqSp.textContent=uiState.eq.active?'ON':'OFF'}
   specCanvas.classList.toggle('eq-active',uiState.eq.active)
+  const ta=document.getElementById('in1ScriptBox')
+  if(ta){
+    if(!uiState.in1script.code) uiState.in1script.code=DEFAULT_IN1_SCRIPT
+    ta.value=uiState.in1script.code
+    _compileIn1Script(uiState.in1script.code)
+  }
   if(audioCtx){buildLiveOsc();rebuildVocState();flushMbc()}
 }
 function getStateValForSlider(id){
-  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth}
+  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth}
   return id in map?map[id]:null
 }
 
@@ -1346,6 +1627,7 @@ function renderWav(){
   const sr=44100
   const total=useInputLen?mod1Buffer.length:Math.max(1,Math.min(600,parseInt(secInput)||10))*sr
   const btn=document.getElementById('renderBtn');btn.textContent='RENDERING…';btn.disabled=true
+  if(uiState.in1script.active) applyIn1ScriptCode()
   setTimeout(()=>{
     const outL=new Float32Array(total),outR=new Float32Array(total)
     const offOsc=new DSPOscillator(sr)
@@ -1357,19 +1639,19 @@ function renderWav(){
     for(const k of _state.keys()){if(/^\d/.test(k)||k.startsWith('mbc')||k.startsWith('rms'))_state.delete(k)}
     _sr=sr
     const eqGains=buildEqGains(uiState.voc.bands)
-    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
+    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,crossover:!!uiState.voc.crossover,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
     const offVocOptsR={...offVocOpts,shift:offVocOpts.shift+uiState.stereoWidth*0.5}
-    const offVocState=_getVocState(sr,offVocOpts)
-    const _nR=Math.max(1,offVocOptsR.filterIter|0),_bR=offVocOptsR.bands
-    const _cR=Array.from({length:_bR},(_,i)=>offVocOptsR.freqLow*Math.pow(offVocOptsR.freqHigh/offVocOptsR.freqLow,i/(_bR-1)))
-    const offVocStateR={bqCoeffs:_cR.map(fc=>_bqCoeffs(fc,offVocOptsR.q,sr)),modCoeffs:_cR.map(fc=>_bqCoeffs(fc,offVocOptsR.q,sr)),n:_nR,lastShift:null,q:offVocOptsR.q,freqLow:offVocOptsR.freqLow,freqHigh:offVocOptsR.freqHigh,modStates:Array.from({length:_bR},()=>Array.from({length:_nR},()=>({x1:0,x2:0,y1:0,y2:0}))),carStates:Array.from({length:_bR},()=>Array.from({length:_nR},()=>({x1:0,x2:0,y1:0,y2:0}))),envStates:new Float64Array(_bR),...(()=>{const{a1:atkA1,b0:atkB0}=_lpCoeffs(1/offVocOptsR.envAttack,sr);const{a1:relA1,b0:relB0}=_lpCoeffs(1/offVocOptsR.envRelease,sr);return{atkA1,atkB0,relA1,relB0}})()}
+    const offVocState=_getVocState(sr,offVocOpts,0)
+    const offVocStateR=_getVocState(sr,offVocOptsR,1)
     const mbcOpts={freqs:[...uiState.mbc.freqs],thresholds:[...uiState.mbc.thresholds],ratio:uiState.mbc.ratio,decay:uiState.mbc.decay,attack:uiState.mbc.attack,filterIter:uiState.mbc.filterIter,q:uiState.mbc.q}
+    _in1ScriptTime=0
     const stereo=uiState.stereo
     let m1=0,m2=0
     for(let i=0;i<total;i++){
-      const modL=m1<mod1Buffer.length?(mod1BufferL?mod1BufferL[m1]:mod1Buffer[m1]):0
-      const modR=m1<mod1Buffer.length?(stereo&&mod1BufferR?mod1BufferR[m1]:modL):0
+      let modL=m1<mod1Buffer.length?(mod1BufferL?mod1BufferL[m1]:mod1Buffer[m1]):0
+      let modR=m1<mod1Buffer.length?(stereo&&mod1BufferR?mod1BufferR[m1]:modL):0
       m1++
+      _applyIn1ScriptOnce(_in1ScriptTime,sr,modL,modR,_in1TmpLR);modL=_in1TmpLR[0];modR=_in1TmpLR[1];_in1ScriptTime+=1/sr
       let carL=0,carR=0
       if(uiState.carrierSrc==='file'&&mod2BufferL){if(m2<mod2BufferL.length){carL=mod2BufferL[m2];carR=stereo?mod2BufferR[m2]:carL;m2++}}
       else{carL=offOsc.tick();if(stereo){carR=offOscR.tick()}else carR=carL}
@@ -1397,6 +1679,7 @@ function renderWav(){
 
 // ── Init ──
 initSliders()
+initIn1ScriptUi()
 buildKbKeys()
 drawSpectrum()
 </script>
