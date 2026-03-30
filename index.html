@@ -283,7 +283,7 @@
           </div>
         </div>
         <div class="ctrl-row"><div class="ctrl-label">CROSS NORM DECAY <span class="ctrl-val" id="voc_xdecay_val">0.999900</span></div><input type="range" id="sl_voc_xdecay" min="0.999" max="1" step="0.000001" value="0.9999"></div>
-        <div class="ctrl-row"><div class="ctrl-label">SMOOTH <span class="ctrl-val" id="voc_smooth_val">1</span></div><input type="range" id="sl_voc_smooth" min="0" max="3" step="1" value="1"></div>
+        <div class="ctrl-row"><div class="ctrl-label">SMOOTH <span class="ctrl-val" id="voc_smooth_val">3</span></div><input type="range" id="sl_voc_smooth" min="0" max="3" step="1" value="3"></div>
         <div class="ctrl-row"><div class="ctrl-label">MAX SAMPLES <span class="ctrl-val" id="voc_maxpow_val">2^11</span></div><input type="range" id="sl_voc_maxpow" min="8" max="16" step="1" value="11"></div>
       </div>
     </div>
@@ -925,7 +925,7 @@ async function startAudio(){
       outL[i]=Math.max(-1,Math.min(1,vL*uiState.masterVol))
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
-    if(uiState.voc.active&&vocState&&vocState.envStates){
+    if(!uiState.bypassVoc&&uiState.voc.active&&vocState&&vocState.envStates){
       const env=(vocState.xover&&vocState.rectUiStates)?vocState.rectUiStates:vocState.envStates
       if(bandEnvDisplay.length!==env.length){bandEnvDisplay=new Float32Array(env.length);bandEnvPeak=new Float32Array(env.length);bandEnvPeakTimer=new Float32Array(env.length)}
       for(let b=0;b<env.length;b++){
@@ -937,7 +937,10 @@ async function startAudio(){
       const t=audioCtx.currentTime*175,n2=bandEnvDisplay.length
       for(let b=0;b<n2;b++){
         const phase=b/n2*512+t&255,pw=t&255
-        bandEnvDisplay[b]=Math.sin((((phase<pw*2)^(phase<pw*2-256))?phase:-phase+t*2)*Math.PI/128)/20+.05
+        bandEnvDisplay[b]=(Math.expm1(
+          ((Math.sin((((phase<pw*2)^(phase<pw*2-256))?phase:-phase+t*2)*Math.PI/128)/2+1)/2)
+          * Math.log1p(12)
+        )) / 40
         bandEnvPeak[b]=0;bandEnvPeakTimer[b]=0
       }
     }
