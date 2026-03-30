@@ -62,6 +62,9 @@
   .src-btn{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all 0.15s;text-align:center}
   .src-btn:hover{border-color:var(--accent3)}
   .src-btn.active{background:#1a2010;border-color:var(--accent3);color:var(--accent3)}
+  /* Vocoder section uses cyan accent for its mode buttons */
+  #vocModule .src-btn:hover{border-color:var(--accent)}
+  #vocModule .src-btn.active{background:rgba(0,229,255,0.08);border-color:var(--accent);color:var(--accent)}
   .vol-row{display:flex;align-items:center;gap:8px}
   .vol-label{font-size:9px;color:var(--text-dim);letter-spacing:1px;white-space:nowrap}
   .status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all 0.15s}
@@ -189,8 +192,14 @@
           <div style="font-size:9px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;">CARRIER SOURCE</div>
           <div class="carrier-src">
             <button class="src-btn active" id="srcOsc" onclick="setCarrierSrc(&#39;osc&#39;)">OSC</button>
+            <button class="src-btn" id="srcFile1" onclick="setCarrierSrc(&#39;file1&#39;)">FILE 1</button>
             <button class="src-btn" id="srcFile" onclick="setCarrierSrc(&#39;file&#39;)">FILE 2</button>
           </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:2px 0;">
+          <span style="font-size:9px;letter-spacing:1.5px;color:var(--text-dim);text-transform:uppercase;white-space:nowrap;">BYPASS VOC</span>
+          <div class="module-bypass" id="bypassVocToggle" onclick="toggleBypassVoc()" style="margin:0;"><div class="toggle-dot"></div></div>
+          <span style="font-size:9px;color:var(--text-dim);letter-spacing:1px;" id="bypassVocLabel">OFF</span>
         </div>
         <div class="transport">
           <button class="transport-btn" id="playBtn" onclick="togglePlay()"><span class="play-icon"></span> PLAY</button>
@@ -265,8 +274,17 @@
         <div class="ctrl-row"><div class="ctrl-label">WET <span class="ctrl-val" id="voc_wet_val">1.00</span></div><input type="range" id="sl_voc_wet" min="0" max="1" step="0.01" value="1"></div>
         <div class="ctrl-row"><div class="ctrl-label">OUTPUT GAIN <span class="ctrl-val" id="voc_gain_val">2000</span></div><input type="range" id="sl_voc_gain" min="1" max="50000" step="1" value="2000"></div>
         <div class="ctrl-row"><div class="ctrl-label">FILTER ITER <span class="ctrl-val" id="voc_iter_val">2</span></div><input type="range" id="sl_voc_iter" min="1" max="4" step="1" value="2"></div>
-        <div class="ctrl-row"><div class="ctrl-label">CROSSOVER <span class="ctrl-val" id="voc_xover_val">OFF</span></div><div class="module-bypass" id="vocXoverToggle" onclick="toggleVocXover()"><span>OFF</span><div class="toggle-dot"></div></div></div>
+        <div class="ctrl-row" style="grid-column:1/-1;">
+          <div class="ctrl-label" style="margin-bottom:6px;">FILTER MODE</div>
+          <div style="display:flex;gap:4px;">
+            <button class="src-btn active" id="vocModeBp" onclick="setVocMode('bp')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">BP</button>
+            <button class="src-btn" id="vocModeCross" onclick="setVocMode('cross')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">CROSS</button>
+            <button class="src-btn" id="vocModeComb" onclick="setVocMode('bandcomb')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">BANDCOMB</button>
+          </div>
+        </div>
         <div class="ctrl-row"><div class="ctrl-label">CROSS NORM DECAY <span class="ctrl-val" id="voc_xdecay_val">0.999900</span></div><input type="range" id="sl_voc_xdecay" min="0.999" max="1" step="0.000001" value="0.9999"></div>
+        <div class="ctrl-row"><div class="ctrl-label">SMOOTH <span class="ctrl-val" id="voc_smooth_val">1</span></div><input type="range" id="sl_voc_smooth" min="0" max="3" step="1" value="1"></div>
+        <div class="ctrl-row"><div class="ctrl-label">MAX SAMPLES <span class="ctrl-val" id="voc_maxpow_val">2^11</span></div><input type="range" id="sl_voc_maxpow" min="8" max="16" step="1" value="11"></div>
       </div>
     </div>
   </div>
@@ -403,6 +421,8 @@
         <button class="kb-btn" onclick="applyKbPreset('octave')">OCTAVE</button>
         <button class="kb-btn" onclick="applyKbPreset('Smaj')">SUPERMAJ</button>
         <button class="kb-btn" onclick="applyKbPreset('Smin')">SUPERMIN</button>
+        <button class="kb-btn" onclick="transposeKbNotes(-1)" title="Transpose -1 semitone" style="font-size:13px;padding:4px 10px;">&lt;</button>
+        <button class="kb-btn" onclick="transposeKbNotes(1)" title="Transpose +1 semitone" style="font-size:13px;padding:4px 10px;">&gt;</button>
         <button class="kb-btn" onclick="clearAllKbNotes()" style="color:var(--accent2);border-color:var(--accent2);">CLEAR</button>
       </div>
       <div class="keyboard-container" id="synthKeyboardContainer"></div>
@@ -427,6 +447,46 @@ function _bqTick(x,s,c){
   s.x2=s.x1;s.x1=x;s.y2=s.y1;s.y1=y;return y
 }
 function _bqTickN(x,stages,c,n){let y=x;for(let i=0;i<n;i++)y=_bqTick(y,stages[i],c);return y}
+function _nextPow2(v){let p=1;while(p<v)p<<=1;return p}
+function _clamp(v,hi,lo){return v>hi?hi:(v<lo?lo:v)}
+function _combStageTick(x,s,delay,fb,smooth){
+  fb *= fb * fb
+  const buf=s.buf,mask=buf.length-1
+  const d=Math.max(2,Math.min(delay|0,buf.length-2))
+  const read=(s.idx-d)&mask
+  const delayed=buf[read]
+  buf[s.idx]=x-delayed*fb
+  s.idx=(s.idx+1)&mask
+  const delayed2=s.buf2[s.idx1]
+  s.buf2[s.idx1]=x
+  const raw=delayed*(1+fb)-delayed2
+  const damp=Math.min(1/Math.max(d-2,1),1)
+  const prevOut=s.lastOut
+  let out
+  switch(smooth|0){
+    case 0: out=raw; break
+    case 1: out=raw*2*damp+prevOut*(1-damp); break
+    case 2: out=_clamp(raw*2,damp+prevOut,-damp+prevOut); break
+    case 3: {
+      s.buf3[s.idx]=raw
+      let phaseSum=0
+      for(let j=0;j<d;j++) phaseSum+=s.buf3[(s.idx-j)&mask]
+      out=phaseSum/d
+      break
+    }
+    default: out=raw; break
+  }
+  s.lastOut=out
+  return out*(1-1/d)**2/1.5*(1-fb)
+}
+function _combTickN(x,stages,delay,fb,n,smooth){
+  let y=x
+  for(let i=0;i<n;i++){
+    y=_combStageTick(y,stages[i],delay,fb,smooth)
+    if(!isFinite(y)){stages[i].buf.fill(0);stages[i].buf2.fill(0);stages[i].buf3.fill(0);stages[i].idx=0;stages[i].idx1=0;stages[i].lastOut=0;y=0}
+  }
+  return y
+}
 function _lpfCoeffs(fc,q,sr){
   const w0=2*Math.PI*fc/sr,cosw0=Math.cos(w0),sinw0=Math.sin(w0),alpha=sinw0*(1-q),a0=1+alpha
   return{b0:(1-cosw0)/2/a0,b1:(1-cosw0)/a0,b2:(1-cosw0)/2/a0,a1:-2*cosw0/a0,a2:(1-alpha)/a0}
@@ -437,29 +497,45 @@ function _hpfCoeffs(fc,q,sr){
 }
 function _getVocState(sr,o,ch=0){
   const n=Math.max(1,o.filterIter|0)
-  const xover=!!o.crossover
-  const k=_key(sr,o.bands,o.q,n)+(xover?"_x":"")+`_ch${ch|0}`
+  const modeRaw=(o.mode||((o.crossover)?'cross':'bp'))+''
+  const mode=(modeRaw.toLowerCase()==='bandcomb')?'bandcomb':((modeRaw.toLowerCase()==='cross'||modeRaw.toLowerCase()==='crossover')?'cross':'bp')
+  const k=_key(sr,o.bands,o.q,n)+`_m${mode}`+`_ch${ch|0}`
   if(_state.has(k))return _state.get(k)
   const bands=o.bands
   const{a1:atkA1,b0:atkB0}=_lpCoeffs(1/o.envAttack,sr)
   const{a1:relA1,b0:relB0}=_lpCoeffs(1/o.envRelease,sr)
 
   let st
-  if(xover){
+  if(mode==='cross'){
     const xFreqs=Array.from({length:bands-1},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,(i+1)/bands))
     const lpCoeffs=xFreqs.map(fc=>_lpfCoeffs(fc,o.q,sr))
     const hpCoeffs=xFreqs.map(fc=>_hpfCoeffs(fc,o.q,sr))
     const _mkStages=()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0}))
     const modXover=Array.from({length:bands-1},()=>({lp:_mkStages(),hp:_mkStages()}))
     const carXover=Array.from({length:bands-1},()=>({lp:_mkStages(),hp:_mkStages()}))
-    st={xover:true,n,lpCoeffs,hpCoeffs,modXover,carXover,envStates:new Float64Array(bands),rectUiStates:new Float32Array(bands),atkA1,atkB0,relA1,relB0,peakEnv:0}
+    st={mode:'cross',xover:true,n,lpCoeffs,hpCoeffs,modXover,carXover,envStates:new Float64Array(bands),rectUiStates:new Float32Array(bands),atkA1,atkB0,relA1,relB0,peakEnv:0}
+  }else if(mode==='bandcomb'){
+    const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
+    const maxShift=24
+    const minFc=Math.max(5,o.freqLow/2**(maxShift/12))
+    const maxDelay=Math.ceil(sr/minFc)+2
+    const reqLen=_nextPow2(maxDelay+1)
+    const wantPow=Math.max(8,Math.min(16,(o.maxPow==null?11:o.maxPow|0)))
+    const bufLen=Math.min(2**16,Math.max(2**wantPow,reqLen))
+    const _mkCombStages=()=>Array.from({length:n},()=>({buf:new Float32Array(bufLen),buf2:new Float32Array(bufLen),buf3:new Float32Array(bufLen),idx:0,idx1:0,lastOut:0}))
+    const modCombStates=Array.from({length:bands},_mkCombStages)
+    const carCombStates=Array.from({length:bands},_mkCombStages)
+    const carDelays=centres.map(fc=>Math.max(2,Math.min(bufLen-2,Math.round(sr/Math.max(5,fc)))))
+    const modDelays=carDelays.slice()
+    const fb=Math.max(0,Math.min(0.999,o.q*0.995))
+    st={mode:'bandcomb',xover:false,n,centres,bufLen,fb,modCombStates,carCombStates,modDelays,carDelays,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,freqLow:o.freqLow,freqHigh:o.freqHigh}
   }else{
     const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
     const bqCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
     const modStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
     const carStates=Array.from({length:bands},()=>Array.from({length:n},()=>({x1:0,x2:0,y1:0,y2:0})))
     const modCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
-    st={xover:false,bqCoeffs,modCoeffs,n,modStates,carStates,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,q:o.q,freqLow:o.freqLow,freqHigh:o.freqHigh}
+    st={mode:'bp',xover:false,bqCoeffs,modCoeffs,n,modStates,carStates,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,q:o.q,freqLow:o.freqLow,freqHigh:o.freqHigh}
   }
   _state.set(k,st);return st
 }
@@ -478,7 +554,8 @@ function _xoverSplit(x,xoverNodes,lpCoeffs,hpCoeffs,n,bands){
 function _processSample(mod,car,sr,o,st){
   let out=0
   const bands=o.bands
-  if(st.xover){
+  const mode=st.mode||((st.xover)?'cross':'bp')
+  if(mode==='cross'&&st.xover){
     const modBands=_xoverSplit(mod,st.modXover,st.lpCoeffs,st.hpCoeffs,st.n,bands)
     const carBands=_xoverSplit(car,st.carXover,st.lpCoeffs,st.hpCoeffs,st.n,bands)
     const shift=o.shift==null?1:Math.pow(2,(o.shift||0)/12)
@@ -506,6 +583,30 @@ function _processSample(mod,car,sr,o,st){
     out=out*o.outputGain/8
     if(o.wet<1)out=out*o.wet+car*(1-o.wet)
     //out=Math.max(-1,Math.min(1,out))
+    return out
+  }
+  if(mode==='bandcomb'){
+    const shift=o.shift??0
+    if(st.lastShift!==shift){
+      st.lastShift=shift
+      for(let b=0;b<bands;b++){
+        const fc=st.centres[b]
+        const fcShifted=Math.max(5,fc/2**(shift/12))
+        st.modDelays[b]=Math.max(2,Math.min(st.bufLen-2,Math.round(sr/fcShifted)))
+      }
+    }
+    for(let b=0;b<bands;b++){
+      const modBC=_combTickN(mod,st.modCombStates[b],st.modDelays[b],st.fb,st.n,o.smooth|0)
+      const rect=Math.abs(modBC),prev=st.envStates[b]
+      st.envStates[b]=rect>prev?st.atkB0*rect+st.atkA1*prev:st.relB0*rect+st.relA1*prev
+    }
+    for(let b=0;b<bands;b++){
+      const carBC=_combTickN(car,st.carCombStates[b],st.carDelays[b],st.fb,st.n,o.smooth|0)
+      const eqG=o.eqGains?o.eqGains[Math.min(b,o.eqGains.length-1)]:1
+      out+=carBC*st.envStates[b]*eqG
+    }
+    out=(out/bands)*o.outputGain
+    if(o.wet<1)out=out*o.wet+car*(1-o.wet)
     return out
   }
 
@@ -641,7 +742,7 @@ function buildEqGains(bands){
 // UI STATE
 // ═══════════════════════════════════════════════════════
 const uiState = {
-  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,wet:1.0,gain:2000,iter:2,crossover:false,xDecay:0.9999,active:true},
+  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,wet:1.0,gain:2000,iter:2,smooth:3,maxPow:11,crossover:false,mode:'bp',xDecay:0.9999,active:true},
   mbc:{ratio:2,attack:0.01,decay:0.001,filterIter:2,q:0.3,freqs:[200,200,3000,3000],thresholds:[1,0.75,1],active:true},
   in1script:{active:false,code:''},
   osc:{wave:'sawtooth',gain:0.1,super:8,detune:0.15,notes:[30,42,54,57,61,66],active:true,
@@ -654,7 +755,7 @@ const uiState = {
     // points: {f:0..1, amp:0..4}  — sorted by f always
     points:[{f:0,amp:1,tension:0},{f:0.25,amp:1,tension:0},{f:0.5,amp:1,tension:0},{f:0.75,amp:1,tension:0},{f:1,amp:1,tension:0}]
   },
-  carrierSrc:'osc',masterVol:1.0,stereo:true,stereoWidth:0.3,
+  carrierSrc:'osc',masterVol:1.0,stereo:true,stereoWidth:0.3,bypassVoc:false,
 }
 
 // ═══════════════════════════════════════════════════════
@@ -724,9 +825,9 @@ function _applyIn1ScriptOnce(t,sr,l,r,outLR){
     if(typeof ret==='number'){outLR[0]=ret;outLR[1]=ret;return}
     return
   }catch(err){
-    uiState.in1script.active=false
+    //uiState.in1script.active=false
     const el=document.getElementById('in1scriptBypass'),sp=el?.querySelector('span')
-    if(el){el.classList.remove('on');if(sp)sp.textContent='BYPASS'}
+    //if(el){el.classList.remove('on');if(sp)sp.textContent='BYPASS'}
     _setIn1ScriptMsg('RUNTIME ERROR: '+(err?.message||String(err)),false)
     return
   }
@@ -747,8 +848,11 @@ let bandEnvPeakTimer=new Float32Array(256)
 function buildVocOpts(){
   const v=uiState.voc
   const eqGains=buildEqGains(v.bands)
-  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,crossover:!!v.crossover,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
-  if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,crossover:!!v.crossover,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
+  const mr=((v.mode||((v.crossover)?'cross':'bp'))+'').toLowerCase()
+  const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':'bp')
+  v.mode=mode;v.crossover=(mode==='cross')
+  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,smooth:v.smooth|0,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
+  if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,smooth:v.smooth|0,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
 }
 function rebuildVocState(){
   if(!audioCtx)return
@@ -811,11 +915,13 @@ async function startAudio(){
       let carL,carR
       if(uiState.carrierSrc==='file'&&mod2Buffer){
         const p=mod2Pos%mod2BufferL.length;mod2Pos++;carL=mod2BufferL[p];carR=stereo?mod2BufferR[p]:carL
+      } else if(uiState.carrierSrc==='file1'&&mod1BufferL){
+        const p=mod1Pos%mod1BufferL.length;carL=mod1BufferL[p];carR=stereo&&mod1BufferR?mod1BufferR[p]:carL
       } else {carL=liveOsc.tick();if(stereo){carR=liveOscR.tick()}else carR=carL}
-      let vL=uiState.voc.active?_processSample(modL,carL,sr,vocOpts,vocState):carL
+      let vL=uiState.bypassVoc?modL:(uiState.voc.active?_processSample(modL,carL,sr,vocOpts,vocState):carL)
       if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
       let vR
-      if(stereo){vR=uiState.voc.active?_processSample(modR,carR,sr,voOptsR,vsR):carR;if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}}else{vR=vL}
+      if(stereo){vR=uiState.bypassVoc?modR:(uiState.voc.active?_processSample(modR,carR,sr,voOptsR,vsR):carR);if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}}else{vR=vL}
       outL[i]=Math.max(-1,Math.min(1,vL*uiState.masterVol))
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
@@ -987,8 +1093,19 @@ document.getElementById('configFileIn').addEventListener('change',loadConfig)
   el.addEventListener('dragleave',()=>{el.style.borderColor=''})
   el.addEventListener('drop',e=>{e.preventDefault();el.style.borderColor='';const f=e.dataTransfer.files[0];if(f)loadAudioFile(f,slot)})
 })
-function setCarrierSrc(src){uiState.carrierSrc=src;document.getElementById('srcOsc').classList.toggle('active',src==='osc');document.getElementById('srcFile').classList.toggle('active',src==='file')}
-document.getElementById('masterVol').addEventListener('input',e=>{uiState.masterVol=parseFloat(e.target.value);document.getElementById('masterVolVal').textContent=uiState.masterVol.toFixed(2)})
+function setCarrierSrc(src){
+  uiState.carrierSrc=src
+  document.getElementById('srcOsc').classList.toggle('active',src==='osc')
+  document.getElementById('srcFile1').classList.toggle('active',src==='file1')
+  document.getElementById('srcFile').classList.toggle('active',src==='file')
+}
+function toggleBypassVoc(){
+  uiState.bypassVoc=!uiState.bypassVoc
+  const el=document.getElementById('bypassVocToggle')
+  const lbl=document.getElementById('bypassVocLabel')
+  el.classList.toggle('on',uiState.bypassVoc)
+  if(lbl)lbl.textContent=uiState.bypassVoc?'ON':'OFF'
+}document.getElementById('masterVol').addEventListener('input',e=>{uiState.masterVol=parseFloat(e.target.value);document.getElementById('masterVolVal').textContent=uiState.masterVol.toFixed(2)})
 function toggleStereo(){uiState.stereo=!uiState.stereo;document.getElementById('stereoToggle').classList.toggle('on',uiState.stereo);if(isPlaying){stopAudio();startAudio()}}
 document.getElementById('stereoWidth').addEventListener('input',e=>{uiState.stereoWidth=parseFloat(e.target.value);document.getElementById('stereoWidthVal').textContent=uiState.stereoWidth.toFixed(2);rebuildVocState()})
 
@@ -1004,6 +1121,8 @@ const sliderDefs=[
   {id:'sl_voc_wet',valId:'voc_wet_val',fmt:v=>v.toFixed(2),cb:v=>uiState.voc.wet=v},
   {id:'sl_voc_gain',valId:'voc_gain_val',fmt:v=>Math.round(v)+'',cb:v=>uiState.voc.gain=Math.round(v)},
   {id:'sl_voc_iter',valId:'voc_iter_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.voc.iter=Math.round(v);rebuildVocState()}},
+  {id:'sl_voc_smooth',valId:'voc_smooth_val',fmt:v=>Math.round(v)+'',cb:v=>uiState.voc.smooth=Math.round(v)},
+  {id:'sl_voc_maxpow',valId:'voc_maxpow_val',fmt:v=>'2^'+Math.round(v),cb:v=>{uiState.voc.maxPow=Math.round(v);rebuildVocState()}},
   {id:'sl_voc_xdecay',valId:'voc_xdecay_val',fmt:v=>v.toFixed(6),cb:v=>uiState.voc.xDecay=v},
   {id:'sl_mbc_ratio',valId:'mbc_ratio_val',fmt:v=>v.toFixed(1),cb:v=>uiState.mbc.ratio=v},
   {id:'sl_mbc_attack',valId:'mbc_attack_val',fmt:v=>v.toFixed(3),cb:v=>uiState.mbc.attack=v},
@@ -1065,17 +1184,30 @@ function toggleBypass(mod){
   const el=document.getElementById(mod+'Bypass'),sp=el.querySelector('span')
   el.classList.toggle('on',uiState[mod].active);sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'
 }
-function toggleVocXover(){
-  uiState.voc.crossover=!uiState.voc.crossover
-  syncVocXoverUi();rebuildVocState()
+function setVocMode(mode){
+  const m=((mode||'bp')+'').toLowerCase()
+  uiState.voc.mode=(m==='bandcomb')?'bandcomb':((m==='cross'||m==='crossover')?'cross':'bp')
+  uiState.voc.crossover=(uiState.voc.mode==='cross')
+  syncVocModeUi();rebuildVocState()
 }
-function syncVocXoverUi(){
-  const el=document.getElementById('vocXoverToggle'),sp=el?.querySelector('span'),val=document.getElementById('voc_xover_val')
-  if(!el)return
-  el.classList.toggle('on',!!uiState.voc.crossover)
-  if(sp)sp.textContent=uiState.voc.crossover?'ON':'OFF'
-  if(val)val.textContent=uiState.voc.crossover?'ON':'OFF'
+function syncVocModeUi(){
+  if(!uiState.voc.mode) uiState.voc.mode=uiState.voc.crossover?'cross':'bp'
+  const mode=((uiState.voc.mode||'bp')+'').toLowerCase()
+  const map={bp:'vocModeBp',cross:'vocModeCross',bandcomb:'vocModeComb'}
+  Object.keys(map).forEach(k=>{
+    const el=document.getElementById(map[k])
+    if(el) el.classList.toggle('active',mode===k)
+  })
+  const dec=document.getElementById('sl_voc_xdecay')
+  if(dec) dec.disabled=(mode!=='cross')
+  const sm=document.getElementById('sl_voc_smooth')
+  if(sm) sm.disabled=(mode!=='bandcomb')
+  const mp=document.getElementById('sl_voc_maxpow')
+  if(mp) mp.disabled=(mode!=='bandcomb')
 }
+// Legacy aliases (older builds/configs used crossover/toggle names)
+function toggleVocXover(){setVocMode(uiState.voc.crossover?'bp':'cross')}
+function syncVocXoverUi(){syncVocModeUi()}
 function setWave(w){
   uiState.osc.wave=w
   document.querySelectorAll('.wave-btn').forEach(b=>b.classList.toggle('active',b.dataset.wave===w))
@@ -1123,6 +1255,31 @@ function applyKbPreset(name){
   const root=parseInt(document.getElementById('keyboardRoot')?.value||'0')
   const oct=parseInt(document.getElementById('keyboardOctave')?.value||'4')
   clearAllKbNotes();intervals.forEach(i=>toggleKbNote(root+(oct+1)*12+i))
+}
+function transposeKbNotes(semitones){
+  const notes=[...kbActiveNotes]
+  if(!notes.length)return
+  const shifted=notes.map(m=>m+semitones)
+  // Clamp to valid MIDI range 0–108
+  if(shifted.some(m=>m<0||m>108))return
+  const container=document.getElementById('synthKeyboardContainer')
+  // Deactivate old keys
+  notes.forEach(midi=>{
+    kbActiveNotes.delete(midi)
+    const keyEl=[...container.children].find(k=>parseInt(k.dataset.midi)===midi)
+    if(keyEl){keyEl.classList.remove('active');keyEl.style.background='';keyEl.style.boxShadow=''}
+  })
+  // Activate new keys
+  shifted.forEach(midi=>{
+    kbActiveNotes.add(midi)
+    const keyEl=[...container.children].find(k=>parseInt(k.dataset.midi)===midi)
+    if(keyEl)keyEl.classList.add('active')
+  })
+  syncOscNotes()
+  // Scroll the keyboard so the first active note stays visible
+  const firstMidi=Math.min(...shifted)
+  const firstKey=[...container.children].find(k=>parseInt(k.dataset.midi)===firstMidi)
+  if(firstKey)firstKey.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'})
 }
 function clearAllKbNotes(){
   kbActiveNotes.clear()
@@ -1182,6 +1339,11 @@ function loadConfig(){
     try{
       const cfg=JSON.parse(e.target.result)
       if(cfg.voc)Object.assign(uiState.voc,cfg.voc)
+      if(!uiState.voc.mode){
+        uiState.voc.mode=uiState.voc.crossover?'cross':'bp'
+      }
+      uiState.voc.mode=((uiState.voc.mode+'').toLowerCase()==='bandcomb')?'bandcomb':(((uiState.voc.mode+'').toLowerCase()==='cross'||(uiState.voc.mode+'').toLowerCase()==='crossover')?'cross':'bp')
+      uiState.voc.crossover=(uiState.voc.mode==='cross')
       if(cfg.mbc)Object.assign(uiState.mbc,cfg.mbc)
       if(cfg.in1script)Object.assign(uiState.in1script,cfg.in1script)
       if(cfg.osc)Object.assign(uiState.osc,cfg.osc)
@@ -1193,6 +1355,7 @@ function loadConfig(){
       if(cfg.masterVol!==undefined)uiState.masterVol=cfg.masterVol
       if(cfg.stereo!==undefined)uiState.stereo=cfg.stereo
       if(cfg.stereoWidth!==undefined)uiState.stereoWidth=cfg.stereoWidth
+      if(cfg.bypassVoc!==undefined)uiState.bypassVoc=cfg.bypassVoc
       if(cfg._audio1L){
         mod1BufferL=base64ToFloat32(cfg._audio1L)
         mod1BufferR=cfg._audio1R?base64ToFloat32(cfg._audio1R):mod1BufferL
@@ -1235,11 +1398,14 @@ function syncUiFromState(){
     const v=getStateValForSlider(id);if(v===null)return
     el.value=v;if(lbl)lbl.textContent=fmt(v);cb(v)
   })
-  syncVocXoverUi()
+  syncVocModeUi()
+  if(audioCtx) rebuildVocState()
   const mv=document.getElementById('masterVol'),mvv=document.getElementById('masterVolVal');if(mv){mv.value=uiState.masterVol;mvv.textContent=uiState.masterVol.toFixed(2)}
   document.getElementById('stereoToggle').classList.toggle('on',uiState.stereo)
   const sw=document.getElementById('stereoWidth'),swv=document.getElementById('stereoWidthVal');if(sw){sw.value=uiState.stereoWidth;swv.textContent=uiState.stereoWidth.toFixed(2)}
   setCarrierSrc(uiState.carrierSrc);setWave(uiState.osc.wave)
+  const bvEl=document.getElementById('bypassVocToggle'),bvLbl=document.getElementById('bypassVocLabel')
+  if(bvEl){bvEl.classList.toggle('on',uiState.bypassVoc);if(bvLbl)bvLbl.textContent=uiState.bypassVoc?'ON':'OFF'}
   ;['voc','mbc','in1script','osc'].forEach(mod=>{const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span');if(el){el.classList.toggle('on',uiState[mod].active);if(sp)sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'}})
   const ft=document.getElementById('osc_filterType');if(ft)ft.value=uiState.osc.filterType
   const lt=document.getElementById('osc_lfoTarget');if(lt)lt.value=uiState.osc.lfoTarget
@@ -1258,7 +1424,7 @@ function syncUiFromState(){
   if(audioCtx){buildLiveOsc();rebuildVocState();flushMbc()}
 }
 function getStateValForSlider(id){
-  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth}
+  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_smooth':uiState.voc.smooth,'sl_voc_maxpow':uiState.voc.maxPow,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth}
   return id in map?map[id]:null
 }
 
@@ -1635,11 +1801,15 @@ function renderWav(){
     offOsc.setSemitones(noteList);offOsc.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(offOsc)
     const offOscR=new DSPOscillator(sr)
     offOscR.setSemitones(noteList);offOscR.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(offOscR);offOscR.reset()
+    // Use a completely isolated state map for offline render so that
+    // bandcomb (and all other modes) never share or corrupt live playback state.
     const savedState=new Map(_state),savedDspSr=_sr
-    for(const k of _state.keys()){if(/^\d/.test(k)||k.startsWith('mbc')||k.startsWith('rms'))_state.delete(k)}
+    _state.clear()   // render into a clean slate; live state is in savedState
     _sr=sr
     const eqGains=buildEqGains(uiState.voc.bands)
-    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,crossover:!!uiState.voc.crossover,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
+    const mr=((uiState.voc.mode||((uiState.voc.crossover)?'cross':'bp'))+'').toLowerCase()
+    const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':'bp')
+    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,smooth:uiState.voc.smooth|0,maxPow:uiState.voc.maxPow|0,crossover:mode==='cross',mode,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
     const offVocOptsR={...offVocOpts,shift:offVocOpts.shift+uiState.stereoWidth*0.5}
     const offVocState=_getVocState(sr,offVocOpts,0)
     const offVocStateR=_getVocState(sr,offVocOptsR,1)
@@ -1654,15 +1824,16 @@ function renderWav(){
       _applyIn1ScriptOnce(_in1ScriptTime,sr,modL,modR,_in1TmpLR);modL=_in1TmpLR[0];modR=_in1TmpLR[1];_in1ScriptTime+=1/sr
       let carL=0,carR=0
       if(uiState.carrierSrc==='file'&&mod2BufferL){if(m2<mod2BufferL.length){carL=mod2BufferL[m2];carR=stereo?mod2BufferR[m2]:carL;m2++}}
+      else if(uiState.carrierSrc==='file1'&&mod1BufferL){const p=m1-1;if(p<mod1BufferL.length){carL=mod1BufferL[p];carR=stereo&&mod1BufferR?mod1BufferR[p]:carL}}
       else{carL=offOsc.tick();if(stereo){carR=offOscR.tick()}else carR=carL}
-      let vL=uiState.voc.active?_processSample(modL,carL,sr,offVocOpts,offVocState):carL
+      let vL=uiState.bypassVoc?modL:(uiState.voc.active?_processSample(modL,carL,sr,offVocOpts,offVocState):carL)
       if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
       let vR
-      if(stereo){vR=uiState.voc.active?_processSample(modR,carR,sr,offVocOptsR,offVocStateR):carR;if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}}else{vR=vL}
+      if(stereo){vR=uiState.bypassVoc?modR:(uiState.voc.active?_processSample(modR,carR,sr,offVocOptsR,offVocStateR):carR);if(uiState.mbc.active){vR=mbc(vR*3,sr,{...mbcOpts,ch:1})}}else{vR=vL}
       outL[i]=Math.max(-1,Math.min(1,vL*uiState.masterVol))
       outR[i]=Math.max(-1,Math.min(1,vR*uiState.masterVol))
     }
-    for(const k of _state.keys())_state.delete(k);for(const[k,v]of savedState)_state.set(k,v);_sr=savedDspSr
+    _state.clear();for(const[k,v]of savedState)_state.set(k,v);_sr=savedDspSr
     const buf=new ArrayBuffer(44+total*4),view=new DataView(buf)
     const wr=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i))}
     wr(0,'RIFF');view.setUint32(4,36+total*4,true);wr(8,'WAVE')
