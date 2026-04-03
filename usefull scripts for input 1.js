@@ -26,10 +26,6 @@ let HPFR
 
 return (t, sr, audio) => {
     // 1. Grab Stereo Input
-	audio =	[
-					[audioIN(t*sr%audioLength(0),0,0), audioIN(t*sr%audioLength(0),1,0)],
-					[random()-.5, random()-.5],
-				][0]
   let inL = audio[0] + L_feed * fb;
   let inR = audio[1] + R_feed * fb;
 
@@ -148,10 +144,6 @@ let fb = .05;
 let vol = .25;
 
 return (t, sr, audio) => {
-	audio =	[
-					[audioIN(t*sr%audioLength(0),0,0), audioIN(t*sr%audioLength(0),1,0)],
-					[random()-.5, random()-.5],
-				][0]
   let inL = audio[0] + feedL * fb;
   let inR = audio[1] + feedR * fb;
 
