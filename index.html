@@ -125,7 +125,41 @@
   #loadProgressMsg{color:var(--accent);letter-spacing:2px;margin-bottom:6px;}
   #loadProgressBar{background:var(--bg);height:4px;border-radius:2px;overflow:hidden;}
   #loadProgressFill{width:0%;height:100%;background:var(--accent);transition:width 0.3s;}
+  /* CodeMirror theme overrides */
+  #in1ScriptCMWrap .CodeMirror{
+    background:var(--bg);color:var(--text);
+    font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.5;
+    height:auto;min-height:220px;padding:6px 0;
+  }
+  #in1ScriptCMWrap .CodeMirror-scroll{min-height:220px;}
+  #in1ScriptCMWrap .CodeMirror-gutters{background:var(--surface);border-right:1px solid var(--border2);}
+  #in1ScriptCMWrap .CodeMirror-linenumber{color:var(--text-dim);}
+  #in1ScriptCMWrap .CodeMirror-cursor{border-left:2px solid var(--accent);}
+  #in1ScriptCMWrap .CodeMirror-selected{background:rgba(0,229,255,0.12);}
+  #in1ScriptCMWrap .CodeMirror-activeline-background{background:rgba(255,255,255,0.03);}
+  /* JS token colours */
+  #in1ScriptCMWrap .cm-keyword{color:#ff79c6;}
+  #in1ScriptCMWrap .cm-def{color:#50fa7b;}
+  #in1ScriptCMWrap .cm-variable{color:var(--text);}
+  #in1ScriptCMWrap .cm-variable-2{color:#8be9fd;}
+  #in1ScriptCMWrap .cm-property{color:#66d9ef;}
+  #in1ScriptCMWrap .cm-operator{color:#ff79c6;}
+  #in1ScriptCMWrap .cm-number{color:#bd93f9;}
+  #in1ScriptCMWrap .cm-string{color:#f1fa8c;}
+  #in1ScriptCMWrap .cm-comment{color:var(--text-dim);font-style:italic;}
+  #in1ScriptCMWrap .cm-atom{color:#bd93f9;}
+  #in1ScriptCMWrap .cm-builtin{color:#50fa7b;}
+  #in1ScriptCMWrap .cm-tag{color:#ff5555;}
+  #in1ScriptCMWrap .cm-bracket{color:var(--text);}
+  #in1ScriptCMWrap .cm-matchingbracket{outline:1px solid var(--accent);background:rgba(0,229,255,0.1);}
+  #in1ScriptCMWrap .CodeMirror-matchingtag{background:rgba(0,229,255,0.1);}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 </head>
 <body>
 <div class="header">
@@ -251,7 +285,9 @@
         <button class="transport-btn" onclick="resetIn1ScriptCode()" style="padding:6px 10px;font-size:9px;">RESET CODE</button>
         <span id="in1ScriptMsg" style="font-size:9px;color:var(--text-dim);letter-spacing:1px;">READY</span>
       </div>
-      <textarea id="in1ScriptBox" spellcheck="false" style="width:100%;min-height:220px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:10px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.35;outline:none;"></textarea>
+      <!-- Hidden textarea keeps existing JS logic unchanged -->
+      <textarea id="in1ScriptBox" spellcheck="false" style="display:none;"></textarea>
+      <div id="in1ScriptCMWrap" style="border:1px solid var(--border2);border-radius:4px;overflow:hidden;min-height:220px;"></div>
       <div style="margin-top:8px;font-size:9px;color:var(--text-dim);letter-spacing:1px;">
         Must end with: <span style="color:var(--accent);">return (t, sr, audio) =&gt; { ... }</span> where <span style="color:var(--accent);">t</span> is the ScriptProcessor node age (seconds) and <span style="color:var(--accent);">audio</span> is <span style="color:var(--accent);">[L, R]</span>. Return a number (mono) or <span style="color:var(--accent);">[L, R]</span>.
       </div>
@@ -327,6 +363,7 @@
           <button class="wave-btn active" data-wave="sawtooth" onclick="setWave(&#39;sawtooth&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SAW</button>
           <button class="wave-btn" data-wave="square" onclick="setWave(&#39;square&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SQR</button>
           <button class="wave-btn" data-wave="triangle" onclick="setWave(&#39;triangle&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>TRI</button>
+          <button class="wave-btn" data-wave="indigo" onclick="setWave(&#39;indigo&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0,7 C1,4 2,9 3,6 C4,3 5,10 6,7 C7,2 8,11 9,5 C10,8 11,3 12,9 C13,5 14,8 15,4 C16,10 17,6 18,3 C19,9 20,5 21,8 C22,4 23,10 24,6 C25,3 26,9 27,5 L28,7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>INDIGO</button>
         </div>
       </div>
       <div class="ctrl-grid">
@@ -676,7 +713,77 @@ class Delay{constructor(sr){this.sampleRate=sr;this.maxDelaySamples=sr*2;this._b
 class Chorus{constructor(maxVoices=16,sampleRate=48000){this.sampleRate=sampleRate;this.MAX_VOICES=Math.min(maxVoices,32);this.voices=0;this.del=0.5;this.feedback=0;this._bufLen=256;this._bufs=[];this._reads=new Int32Array(this.MAX_VOICES);this._phases=new Float32Array(this.MAX_VOICES).map((_,i)=>i===0?0:Math.random());this.baseRate=0.2;this._rates=new Float32Array(this.MAX_VOICES).map(()=>this.baseRate*Math.random()*2)}set(voices,del,feedback,rate){this.voices=Math.max(0,Math.min(voices|0,this.MAX_VOICES));this.del=del;this.feedback=Math.max(-0.99,Math.min(0.99,feedback));if(rate!==undefined){this.baseRate=Math.max(0.001,rate);for(let i=0;i<this.MAX_VOICES;i++)this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}this._allocBuffers();return this}size(samples){this._bufLen=Math.max(2,samples|0);this._allocBuffers();return this}_allocBuffers(){const len=this._bufLen;for(let i=0;i<this.MAX_VOICES;i++){if(!this._bufs[i]||this._bufs[i].length!==len){this._bufs[i]=new Float32Array(len);this._reads[i]=0}}}process(x){const voices=this.voices;if(voices===0)return x;const len=this._bufLen,feedback=this.feedback,depth=this.del;let acc=0;for(let i=0;i<voices;i++){const buf=this._bufs[i];let write=this._reads[i]+1;if(write>=len)write=0;this._reads[i]=write;let phase=this._phases[i];phase+=this._rates[i]/this.sampleRate;if(phase>=1)phase-=1;this._phases[i]=phase;const lfo=phase<0.5?4*phase-1:3-4*phase,delay=(0.5+lfo*0.5)*depth*len;let readPos=write-delay;if(readPos<0)readPos+=len;const i0=readPos|0,i1=(i0+1)%len,frac=readPos-i0,delayed=buf[i0]*(1-frac)+buf[i1]*frac;acc+=delayed;buf[write]=x+delayed*feedback}return(acc+x)/(voices+1)}reset(){for(let i=0;i<this._bufs.length;i++){if(this._bufs[i])this._bufs[i].fill(0);this._reads[i]=0;this._phases[i]=i===0?0:Math.random();this._rates[i]=this.baseRate*(0.95+Math.random()*0.1)}return this}}
 class FXChain{constructor(sr){this.distortion=new Distortion();this.delay=new Delay(sr);this.chorus=new Chorus(16,sr)}process(x){x=this.distortion.process(x);x=this.chorus.process(x);x=this.delay.process(x);return x}reset(){this.delay.reset();this.chorus.reset();return this}}
 class LFO{constructor(sr){this.sampleRate=sr;this.rate=1;this.depth=0;this.shape="sine";this.target="filter";this.enabled=false;this._phase=0}setRate(hz){this.rate=Math.max(0.01,hz);return this}setDepth(a){this.depth=a;return this}setShape(t){this.shape=t;return this}setTarget(t){this.target=t;return this}enable(){this.enabled=true;return this}disable(){this.enabled=false;return this}tick(){if(!this.enabled)return 0;const p=this._phase;let v;switch(this.shape){case"square":v=p<0.5?1:-1;break;case"sawtooth":v=2*p-1;break;case"triangle":v=p<0.5?4*p-1:3-4*p;break;default:v=Math.sin(p*2*Math.PI)}this._phase+=this.rate/this.sampleRate;if(this._phase>=1)this._phase-=1;return v*this.depth}reset(){this._phase=0;return this}}
-class DSPOscillator{constructor(sampleRate=44100){this.sampleRate=sampleRate;this.phases=[];this.frequencies=[];this.waveType="sine";this._superCount=0;this._superDetune=0.1;this._superRandomPhase=0;this._superPanSpread=0;this._panPositions=[];this.tableSize=1024;this.wavetables=this._buildWavetables();this.gain=1.0;this.filter=new BiquadFilter(sampleRate);this.fx=new FXChain(sampleRate);this.lfo=new LFO(sampleRate);this._baseFreqs=null}_buildWavetables(){const size=this.tableSize;return{sine:new Float32Array(size).map((_,i)=>Math.sin((i/size)*2*Math.PI)),square:new Float32Array(size).map((_,i)=>i/size<0.5?1:-1),sawtooth:new Float32Array(size).map((_,i)=>2*(i/size)-1),triangle:new Float32Array(size).map((_,i)=>{const t=i/size;return t<0.5?4*t-1:3-4*t})}}_readTable(phase){const table=this.wavetables[this.waveType],pos=phase*this.tableSize,i0=Math.floor(pos)%this.tableSize,i1=(i0+1)%this.tableSize,frac=pos-Math.floor(pos);return table[i0]+frac*(table[i1]-table[i0])}setWave(type){if(this.wavetables[type])this.waveType=type;return this}setGain(value){this.gain=value;return this}_midiToFreq(midi){return 440*Math.pow(2,(midi-69)/12)}_detuneSemitones(freq,st){return freq*Math.pow(2,st/12)}_buildFrequencies(baseFreqs){const count=Math.max(1,this._superCount);if(count<=1)return baseFreqs;const result=[];for(const freq of baseFreqs){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;result.push(this._detuneSemitones(freq,t*this._superDetune))}}return result}_buildPanPositions(baseFreqCount){const count=Math.max(1,this._superCount),spread=this._superPanSpread,positions=[];for(let b=0;b<baseFreqCount;b++){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;positions.push(t*spread)}}return positions}_applyFrequencies(baseFreqs){const expanded=this._buildFrequencies(baseFreqs),oldPhases=this.phases;this.phases=expanded.map((_,i)=>oldPhases[i]!==undefined?oldPhases[i]:(i===0?0:Math.random()*(this._superRandomPhase??0)));this.frequencies=expanded;this._baseFreqs=baseFreqs;this._panPositions=this._buildPanPositions(baseFreqs.length);this.filter._resizeVoiceStates(expanded.length)}setFrequency(freqs){const base=Array.isArray(freqs)?freqs:[freqs];this._applyFrequencies(base);return this}setSemitones(midis){const base=Array.isArray(midis)?midis.map(m=>this._midiToFreq(m)):[this._midiToFreq(midis)];this._applyFrequencies(base);return this}super(count,spread=0.1,randomPhase=0,panSpread=0){this._superCount=Math.max(1,Math.floor(count));this._superDetune=spread;this._superRandomPhase=randomPhase;this._superPanSpread=Math.max(0,Math.min(1,panSpread));if(this._baseFreqs)this._applyFrequencies(this._baseFreqs);return this}superSet(count,spread=0.1,randomPhase=0,panSpread=0){return this.super(count,spread,randomPhase,panSpread)}_cutoffForVoice(i){if(!this.filter._pitchMultiple||!this._baseFreqs)return null;const sc=Math.max(1,this._superCount),bi=Math.floor(i/sc),bf=this._baseFreqs[bi]??this._baseFreqs[0];return bf*this.filter._pitchMultiple}tick(){if(!this.frequencies.length)return 0;const lfoVal=this.lfo.tick(),multi=this.filter._multi;const voiceCount=this.frequencies.length;let sample=0,savedCutoff=null;if(!multi&&this.lfo.enabled&&this.lfo.target==="filter"&&lfoVal!==0){savedCutoff=this.filter.cutoff;this.filter.setCutoff(savedCutoff+lfoVal)}if(multi){for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);let v=this._readTable(this.phases[i]);const pc=this._cutoffForVoice(i);if(pc!==null){const lo=this.lfo.enabled&&this.lfo.target==="filter"?lfoVal:0;this.filter.setCutoff(pc+lo)}v=this.filter.processVoice(v,this.filter._voiceStates[i]);sample+=v;this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0}}else{for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);sample+=this._readTable(this.phases[i]);this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0}sample=this.filter.process(sample);if(savedCutoff!==null)this.filter.cutoff=savedCutoff}sample/=Math.sqrt(voiceCount);let gainMod=this.gain;if(this.lfo.enabled&&this.lfo.target==="gain")gainMod=Math.max(0,this.gain+lfoVal);return this.fx.process(sample)*gainMod}processStereo(buffer){const frames=buffer.length/2,voiceCount=this.frequencies.length,multi=this.filter._multi;for(let f=0;f<frames;f++){const lfoVal=this.lfo.tick();let savedCutoff=null;if(!multi&&this.lfo.enabled&&this.lfo.target==="filter"&&lfoVal!==0){savedCutoff=this.filter.cutoff;this.filter.setCutoff(savedCutoff+lfoVal)}let left=0,right=0;for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);let v=this._readTable(this.phases[i]);if(multi){const pc=this._cutoffForVoice(i);if(pc!==null){const lo=this.lfo.enabled&&this.lfo.target==="filter"?lfoVal:0;this.filter.setCutoff(pc+lo)}v=this.filter.processVoice(v,this.filter._voiceStates[i])}const pan=this._panPositions[i]??0;const panL=Math.cos(((pan+1)/2)*(Math.PI/2)),panR=Math.sin(((pan+1)/2)*(Math.PI/2));left+=v*panL;right+=v*panR;this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0}left/=Math.sqrt(voiceCount);right/=Math.sqrt(voiceCount);if(!multi){left=this.filter.process(left);right=this.filter.process(right);if(savedCutoff!==null)this.filter.cutoff=savedCutoff}let gainMod=this.gain;if(this.lfo.enabled&&this.lfo.target==="gain")gainMod=Math.max(0,this.gain+lfoVal);left=this.fx.process(left)*gainMod;right=this.fx.process(right)*gainMod;buffer[f*2]=left;buffer[f*2+1]=right}return buffer}stream(){if(!this.frequencies.length)return 0;const voiceCount=Math.max(1,this._superCount);let sample=0;for(let i=0;i<this.frequencies.length;i++)sample+=this._readTable(this.phases[i]);return(sample/Math.sqrt(voiceCount))*this.gain}reset(){this.phases=this.phases.map((_,i)=>i===0?0:Math.random()*(this._superRandomPhase??0));this.filter.reset();this.fx.reset();this.lfo.reset();return this}hardReset(){this.phases=[];this.frequencies=[];this._baseFreqs=null;this._panPositions=[];this._superCount=0;this._superDetune=0.1;this._superRandomPhase=0;this._superPanSpread=0;this.gain=1.0;this.waveType="sine";this.filter.setType("off");this.filter._pitchMultiple=0;this.filter._multi=false;this.filter.reset();this.fx.reset();this.lfo.reset();this.lfo.disable();return this}}
+class DSPOscillator{constructor(sampleRate=44100){this.sampleRate=sampleRate;this.phases=[];this.frequencies=[];this.waveType="sine";this._superCount=0;this._superDetune=0.1;this._superRandomPhase=0;this._superPanSpread=0;this._panPositions=[];this.tableSize=1024;this.wavetables=this._buildWavetables();this.gain=1.0;this.filter=new BiquadFilter(sampleRate);this.fx=new FXChain(sampleRate);this.lfo=new LFO(sampleRate);this._baseFreqs=null;this._voiceT=new Float64Array(64);this._voicePhaseRands=[]}_buildWavetables(){const size=this.tableSize;return{sine:new Float32Array(size).map((_,i)=>Math.sin((i/size)*2*Math.PI)),square:new Float32Array(size).map((_,i)=>i/size<0.5?1:-1),sawtooth:new Float32Array(size).map((_,i)=>2*(i/size)-1),triangle:new Float32Array(size).map((_,i)=>{const t=i/size;return t<0.5?4*t-1:3-4*t})}}_readTable(phase){const table=this.wavetables[this.waveType];if(!table)return 0;const pos=phase*this.tableSize,i0=Math.floor(pos)%this.tableSize,i1=(i0+1)%this.tableSize,frac=pos-Math.floor(pos);return table[i0]+frac*(table[i1]-table[i0])}
+_indigoSample(t,freq,phaseOffset=0){
+  const phase=t*Math.PI*freq*2+phaseOffset;
+  function naturalNoise(x, y, scale = 1, octaves = 4, persistence = 0.5, lacunarity = 2) {
+    // Simple hash function for pseudo-random gradients
+    function hash(x, y) {
+      let h = (x * 374761393 + y * 668265263) ^ ((x * 668265263) >> 13);
+      h = (h ^ (h >> 15)) * 2246822519;
+      h = (h ^ (h >> 13)) * 3266489917;
+      return (h ^ (h >> 16)) / 4294967296*2-.5;
+    }
+
+    // Smooth interpolation (smoothstep)
+    function fade(t) {
+      return t*t*(3 - 2*t)//t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    // Linear interpolation
+    function lerp(a, b, t) {
+      return a + t * (b - a);
+    }
+
+    // 2D value noise at a single frequency
+    function valueNoise(x, y) {
+      const xi = Math.floor(x);
+      const yi = Math.floor(y);
+      const xf = x - xi;
+      const yf = y - yi;
+
+      const topLeft     = hash(xi,     yi);
+      const topRight    = hash(xi + 1, yi);
+      const bottomLeft  = hash(xi,     yi + 1);
+      const bottomRight = hash(xi + 1, yi + 1);
+
+      const u = fade(xf);
+      const v = fade(yf);
+
+      return lerp(
+        lerp(topLeft, topRight, u),
+        lerp(bottomLeft, bottomRight, u),
+        v
+      );
+    }
+
+    // Fractal Brownian Motion — layered octaves
+    let value = 0;
+    let amplitude = 1;
+    let frequency = scale;
+    let maxValue = 0;
+
+    for (let i = 0; i < octaves; i++) {
+      value    += valueNoise(x * frequency, y * frequency) * amplitude;
+      maxValue += amplitude;
+      amplitude *= persistence;
+      frequency *= lacunarity;
+    }
+
+    // Normalize to [0, 1]
+    return value // maxValue;
+  }
+
+  const x = -naturalNoise(
+	  				Math.acos(Math.cos(phase))+1, Math.acos(Math.cos(t * 5 * (freq / 220)))
+	  			, 1, 4, 0.5, 2)
+	 			+naturalNoise(
+					Math.acos(Math.cos(phase*1.5))+10, Math.acos(Math.cos(t * 7.5 * (freq / 220)))+1
+				, 1, 4, 0.5, 2);
+
+  return (x-.35)*3;
+}
+_readSample(phase,voiceIdx,freq){const rand=this._voicePhaseRands?.[voiceIdx]??0;const voiceOffset=Math.PI*2*rand;if(this.waveType==='indigo'){const t=this._voiceT[voiceIdx]||0;return this._indigoSample(t,freq,voiceOffset)}return this._readTable((phase+(voiceOffset/(2*Math.PI)))%1)}setWave(type){if(this.wavetables[type]||type==='indigo')this.waveType=type;return this}setGain(value){this.gain=value;return this}_midiToFreq(midi){return 440*Math.pow(2,(midi-69)/12)}_detuneSemitones(freq,st){return freq*Math.pow(2,st/12)}_buildFrequencies(baseFreqs){const count=Math.max(1,this._superCount);if(count<=1)return baseFreqs;const result=[];for(const freq of baseFreqs){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;result.push(this._detuneSemitones(freq,t*this._superDetune))}}return result}_buildPanPositions(baseFreqCount){const count=Math.max(1,this._superCount),spread=this._superPanSpread,positions=[];for(let b=0;b<baseFreqCount;b++){for(let v=0;v<count;v++){const t=count===1?0:(v/(count-1))*2-1;positions.push(t*spread)}}return positions}_applyFrequencies(baseFreqs){const expanded=this._buildFrequencies(baseFreqs),oldPhases=this.phases,oldRands=this._voicePhaseRands;this.phases=expanded.map((_,i)=>oldPhases[i]!==undefined?oldPhases[i]:(i===0?0:Math.random()*(this._superRandomPhase??0)));this._voicePhaseRands=expanded.map((_,i)=>oldRands&&oldRands[i]!==undefined?oldRands[i]:(i===0?0:Math.random()));if(this._voicePhaseRands.length>0)this._voicePhaseRands[0]=0;this.frequencies=expanded;this._baseFreqs=baseFreqs;this._panPositions=this._buildPanPositions(baseFreqs.length);this.filter._resizeVoiceStates(expanded.length)}setFrequency(freqs){const base=Array.isArray(freqs)?freqs:[freqs];this._applyFrequencies(base);return this}setSemitones(midis){const base=Array.isArray(midis)?midis.map(m=>this._midiToFreq(m)):[this._midiToFreq(midis)];this._applyFrequencies(base);return this}super(count,spread=0.1,randomPhase=0,panSpread=0){this._superCount=Math.max(1,Math.floor(count));this._superDetune=spread;this._superRandomPhase=randomPhase;this._superPanSpread=Math.max(0,Math.min(1,panSpread));if(this._baseFreqs)this._applyFrequencies(this._baseFreqs);return this}superSet(count,spread=0.1,randomPhase=0,panSpread=0){return this.super(count,spread,randomPhase,panSpread)}_cutoffForVoice(i){if(!this.filter._pitchMultiple||!this._baseFreqs)return null;const sc=Math.max(1,this._superCount),bi=Math.floor(i/sc),bf=this._baseFreqs[bi]??this._baseFreqs[0];return bf*this.filter._pitchMultiple}tick(){if(!this.frequencies.length)return 0;const lfoVal=this.lfo.tick(),multi=this.filter._multi;const voiceCount=this.frequencies.length;let sample=0,savedCutoff=null;if(!multi&&this.lfo.enabled&&this.lfo.target==="filter"&&lfoVal!==0){savedCutoff=this.filter.cutoff;this.filter.setCutoff(savedCutoff+lfoVal)}if(multi){for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);let v=this._readSample(this.phases[i],i,freq);const pc=this._cutoffForVoice(i);if(pc!==null){const lo=this.lfo.enabled&&this.lfo.target==="filter"?lfoVal:0;this.filter.setCutoff(pc+lo)}v=this.filter.processVoice(v,this.filter._voiceStates[i]);sample+=v;this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0;if(this.waveType==='indigo'){this._voiceT[i]=(this._voiceT[i]||0)+1/this.sampleRate}}}else{for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);sample+=this._readSample(this.phases[i],i,freq);this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0;if(this.waveType==='indigo'){this._voiceT[i]=(this._voiceT[i]||0)+1/this.sampleRate}}sample=this.filter.process(sample);if(savedCutoff!==null)this.filter.cutoff=savedCutoff}sample/=Math.sqrt(voiceCount);let gainMod=this.gain;if(this.lfo.enabled&&this.lfo.target==="gain")gainMod=Math.max(0,this.gain+lfoVal);return this.fx.process(sample)*gainMod}processStereo(buffer){const frames=buffer.length/2,voiceCount=this.frequencies.length,multi=this.filter._multi;for(let f=0;f<frames;f++){const lfoVal=this.lfo.tick();let savedCutoff=null;if(!multi&&this.lfo.enabled&&this.lfo.target==="filter"&&lfoVal!==0){savedCutoff=this.filter.cutoff;this.filter.setCutoff(savedCutoff+lfoVal)}let left=0,right=0;for(let i=0;i<this.frequencies.length;i++){let freq=this.frequencies[i];if(this.lfo.enabled&&this.lfo.target==="pitch")freq=this._detuneSemitones(freq,lfoVal);let v=this._readSample(this.phases[i],i,freq);if(multi){const pc=this._cutoffForVoice(i);if(pc!==null){const lo=this.lfo.enabled&&this.lfo.target==="filter"?lfoVal:0;this.filter.setCutoff(pc+lo)}v=this.filter.processVoice(v,this.filter._voiceStates[i])}const pan=this._panPositions[i]??0;const panL=Math.cos(((pan+1)/2)*(Math.PI/2)),panR=Math.sin(((pan+1)/2)*(Math.PI/2));left+=v*panL;right+=v*panR;this.phases[i]+=freq/this.sampleRate;if(this.phases[i]>=1.0)this.phases[i]-=1.0;if(this.waveType==='indigo'){this._voiceT[i]=(this._voiceT[i]||0)+1/this.sampleRate}}left/=Math.sqrt(voiceCount);right/=Math.sqrt(voiceCount);if(!multi){left=this.filter.process(left);right=this.filter.process(right);if(savedCutoff!==null)this.filter.cutoff=savedCutoff}let gainMod=this.gain;if(this.lfo.enabled&&this.lfo.target==="gain")gainMod=Math.max(0,this.gain+lfoVal);left=this.fx.process(left)*gainMod;right=this.fx.process(right)*gainMod;buffer[f*2]=left;buffer[f*2+1]=right}return buffer}stream(){if(!this.frequencies.length)return 0;const voiceCount=Math.max(1,this._superCount);let sample=0;for(let i=0;i<this.frequencies.length;i++)sample+=this._readSample(this.phases[i],i,this.frequencies[i]);return(sample/Math.sqrt(voiceCount))*this.gain}reset(){this.phases=this.phases.map((_,i)=>i===0?0:Math.random()*(this._superRandomPhase??0));this._voiceT=new Float64Array(64);this.filter.reset();this.fx.reset();this.lfo.reset();return this}hardReset(){this.phases=[];this.frequencies=[];this._baseFreqs=null;this._voicePhaseRands=[];this._panPositions=[];this._superCount=0;this._superDetune=0.1;this._superRandomPhase=0;this._superPanSpread=0;this.gain=1.0;this.waveType="sine";this.filter.setType("off");this.filter._pitchMultiple=0;this.filter._multi=false;this.filter.reset();this.fx.reset();this.lfo.reset();this.lfo.disable();return this}}
 
 // ═══════════════════════════════════════════════════════
 // EQ — amplitude scale 0–4×
@@ -795,7 +902,8 @@ function _compileIn1Script(code){
 function applyIn1ScriptCode(){
   const ta=document.getElementById('in1ScriptBox')
   if(!ta) return
-  uiState.in1script.code=ta.value
+  if(window._in1ScriptCM) uiState.in1script.code=window._in1ScriptCM.getValue()
+  else uiState.in1script.code=ta.value
   _compileIn1Script(uiState.in1script.code)
 }
 function resetIn1ScriptCode(){
@@ -803,6 +911,7 @@ function resetIn1ScriptCode(){
   if(!ta) return
   ta.value=DEFAULT_IN1_SCRIPT
   uiState.in1script.code=ta.value
+  if(window._in1ScriptCM) window._in1ScriptCM.setValue(DEFAULT_IN1_SCRIPT)
   _compileIn1Script(uiState.in1script.code)
 }
 function initIn1ScriptUi(){
@@ -811,10 +920,44 @@ function initIn1ScriptUi(){
   if(!uiState.in1script.code) uiState.in1script.code=DEFAULT_IN1_SCRIPT
   ta.value=uiState.in1script.code
   _compileIn1Script(uiState.in1script.code)
-  ta.addEventListener('input',()=>{uiState.in1script.code=ta.value})
-  ta.addEventListener('keydown',e=>{
-    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();applyIn1ScriptCode()}
-  })
+
+  // Boot CodeMirror
+  const wrap=document.getElementById('in1ScriptCMWrap')
+  if(wrap && typeof CodeMirror !== 'undefined'){
+    const cm=CodeMirror(wrap,{
+      value:uiState.in1script.code,
+      mode:'javascript',
+      lineNumbers:true,
+      matchBrackets:true,
+      autoCloseBrackets:true,
+      styleActiveLine:true,
+      indentUnit:2,
+      tabSize:2,
+      indentWithTabs:false,
+      electricChars:true,
+      extraKeys:{
+        'Ctrl-Enter':()=>{applyIn1ScriptCode()},
+        'Cmd-Enter':()=>{applyIn1ScriptCode()},
+        Tab:(cm)=>{cm.replaceSelection('  ')}
+      }
+    })
+    // Keep hidden textarea + uiState in sync
+    cm.on('change',()=>{
+      const v=cm.getValue()
+      ta.value=v
+      uiState.in1script.code=v
+    })
+    // Expose so the rest of the code can read/write the editor
+    window._in1ScriptCM=cm
+  } else {
+    // Fallback: show raw textarea if CodeMirror failed to load
+    ta.style.display='block'
+    ta.style.cssText='width:100%;min-height:220px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:10px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;line-height:1.35;outline:none;'
+    ta.addEventListener('input',()=>{uiState.in1script.code=ta.value})
+    ta.addEventListener('keydown',e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();applyIn1ScriptCode()}
+    })
+  }
 }
 function _applyIn1ScriptOnce(t,sr,l,r,outLR){
   outLR[0]=l;outLR[1]=r
@@ -1422,6 +1565,7 @@ function syncUiFromState(){
   if(ta){
     if(!uiState.in1script.code) uiState.in1script.code=DEFAULT_IN1_SCRIPT
     ta.value=uiState.in1script.code
+    if(window._in1ScriptCM) window._in1ScriptCM.setValue(uiState.in1script.code)
     _compileIn1Script(uiState.in1script.code)
   }
   if(audioCtx){buildLiveOsc();rebuildVocState();flushMbc()}
