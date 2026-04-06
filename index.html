@@ -1813,6 +1813,10 @@ function toggleBypass(mod){
   }
 }
 let _vocModeCache=Object.create(null)
+// Defaults: CROSS keeps its own BANDS/Q (and iter). Other modes share BANDS/Q/iter.
+// This seeds CROSS so the first switch to CROSS jumps to these values.
+_vocModeCache.sharedBQI={bands:uiState.voc.bands,q:uiState.voc.q,iter:uiState.voc.iter}
+_vocModeCache.crossBQI={bands:20,q:0.50,iter:uiState.voc.iter}
 function _normVocMode(m){
   const s=((m||'bp')+'').toLowerCase()
   return (s==='crossover')?'cross':s
