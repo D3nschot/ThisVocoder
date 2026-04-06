@@ -301,12 +301,12 @@
       <div class="module-bypass on" id="vocBypass" onclick="toggleBypass(&#39;voc&#39;)"><span>ACTIVE</span><div class="toggle-dot"></div></div>
     </div>
     <div class="module-body">
-      <div class="ctrl-grid">
+      <div class="ctrl-grid" id="vocCtrlGrid">
         <div class="ctrl-row"><div class="ctrl-label">BANDS <span class="ctrl-val" id="voc_bands_val">46</span></div><input type="range" id="sl_voc_bands" min="4" max="256" step="1" value="46"></div>
         <div class="ctrl-row"><div class="ctrl-label">Q FACTOR <span class="ctrl-val" id="voc_q_val">0.95</span></div><input type="range" id="sl_voc_q" min="0.1" max="1" step="0.01" value="0.95"></div>
         <div class="ctrl-row"><div class="ctrl-label">PITCH SHIFT <span class="ctrl-val" id="voc_shift_val">0 st</span></div><input type="range" id="sl_voc_shift" min="-24" max="24" step="0.1" value="0"></div>
-        <div class="ctrl-row"><div class="ctrl-label">ATTACK <span class="ctrl-val" id="voc_attack_val">0.010</span></div><input type="range" id="sl_voc_attack" min="0" max="1" step="0.001" value="0.01"></div>
-        <div class="ctrl-row"><div class="ctrl-label">RELEASE <span class="ctrl-val" id="voc_release_val">0.100</span></div><input type="range" id="sl_voc_release" min="0" max="10" step="0.001" value="0.1"></div>
+        <div class="ctrl-row"><div class="ctrl-label">ATTACK <span class="ctrl-val" id="voc_attack_val">0.010</span></div><input type="range" id="sl_voc_attack" min="0.001" max="1" step="0.001" value="0.01"></div>
+        <div class="ctrl-row"><div class="ctrl-label">RELEASE <span class="ctrl-val" id="voc_release_val">0.100</span></div><input type="range" id="sl_voc_release" min="0.01" max="10" step="0.001" value="0.1"></div>
         <div class="ctrl-row"><div class="ctrl-label">WET <span class="ctrl-val" id="voc_wet_val">1.00</span></div><input type="range" id="sl_voc_wet" min="0" max="1" step="0.01" value="1"></div>
         <div class="ctrl-row"><div class="ctrl-label">OUTPUT GAIN <span class="ctrl-val" id="voc_gain_val">2000</span></div><input type="range" id="sl_voc_gain" min="1" max="50000" step="1" value="2000"></div>
         <div class="ctrl-row"><div class="ctrl-label">FILTER ITER <span class="ctrl-val" id="voc_iter_val">2</span></div><input type="range" id="sl_voc_iter" min="1" max="4" step="1" value="2"></div>
@@ -800,7 +800,10 @@ function _createFftVocoder(){
     let bands=opts.bands|0
     if(bands<1) bands=1
     const half=fftSize>>1
-    if(bands>half) bands=half
+    // Allow up to fftSize "bands" so the UI can go up to the full FFT size.
+    // Note: resolution is still limited by the unique bins (half), but extra
+    // bands will simply reuse bins (fine for UI expectations).
+    if(bands>fftSize) bands=fftSize
     if(bands!==lastBands){
       lastBands=bands
       bandEnv=new Float32Array(bands)
@@ -855,22 +858,41 @@ function _createFftVocoder(){
       fft(carRe,carIm)
 
       // band-wise envelope shaping
-      // Use proportional bin ranges so we never "drop" the top bins when bands≈half.
+      // For bands <= half (unique FFT bins), use proportional bin ranges so we
+      // never "drop" the top bins. For bands > half, treat bands as an
+      // upsampled view and sample/interpolate the spectrum.
       const shiftFrac=Math.pow(2,-formantShift/12)
-      for(let b=0;b<bands;b++){
-        let lo=Math.floor((b*half)/bands)
-        let hi=Math.floor(((b+1)*half)/bands)
-        if(hi<=lo) hi=lo+1
-        if(hi>half) hi=half
- 
-        let envAv=0
-        for(let k=lo;k<hi;k++){
-          const srcK=Math.round(k*shiftFrac)
-          envAv+=(srcK<half)?envBins[srcK]:0
-        }
-        envAv/=Math.max(1,(hi-lo))
+      if(bands<=half){
+        for(let b=0;b<bands;b++){
+          let lo=Math.floor((b*half)/bands)
+          let hi=Math.floor(((b+1)*half)/bands)
+          if(hi<=lo) hi=lo+1
+          if(hi>half) hi=half
 
-        bandEnv[b]=envAv
+          let envAv=0
+          for(let k=lo;k<hi;k++){
+            const srcK=Math.round(k*shiftFrac)
+            envAv+=(srcK<half)?envBins[srcK]:0
+          }
+          envAv/=Math.max(1,(hi-lo))
+          bandEnv[b]=envAv
+        }
+      } else {
+        const halfM1=Math.max(1,half-1)
+        const sampleEnvAt=(bin)=>{
+          const x=Math.max(0,Math.min(halfM1,bin))
+          const i0=x|0
+          const i1=Math.min(halfM1,i0+1)
+          const frac=x-i0
+          const v0=envBins[i0]||0
+          const v1=envBins[i1]||0
+          return v0+(v1-v0)*frac
+        }
+        for(let b=0;b<bands;b++){
+          const center=((b+0.5)/bands)*half
+          const src=center*shiftFrac
+          bandEnv[b]=sampleEnvAt(src)
+        }
       }
 
       // Exponential per-band attack/release (no smoothing).
@@ -881,16 +903,29 @@ function _createFftVocoder(){
         envState[b]=target>prev ? (atk.b0*target + atk.a1*prev) : (rel.b0*target + rel.a1*prev)
         if(envOut&&b<envOut.length) envOut[b]=envState[b]
       }
-      for(let b=0;b<bands;b++){
-        let lo=Math.floor((b*half)/bands)
-        let hi=Math.floor(((b+1)*half)/bands)
-        if(hi<=lo) hi=lo+1
-        if(hi>half) hi=half
- 
-        const eqG=opts.eqGains?opts.eqGains[Math.min(b,opts.eqGains.length-1)]:1
-        const bandAmp=envState[b]*eqG
- 
-        for(let k=lo;k<hi;k++){
+      if(bands<=half){
+        for(let b=0;b<bands;b++){
+          let lo=Math.floor((b*half)/bands)
+          let hi=Math.floor(((b+1)*half)/bands)
+          if(hi<=lo) hi=lo+1
+          if(hi>half) hi=half
+
+          const eqG=opts.eqGains?opts.eqGains[Math.min(b,opts.eqGains.length-1)]:1
+          const bandAmp=envState[b]*eqG
+          for(let k=lo;k<hi;k++){
+            carRe[k]*=bandAmp;carIm[k]*=bandAmp
+            if(k>0&&k<half){
+              const rk=fftSize-k
+              carRe[rk]*=bandAmp
+              carIm[rk]*=bandAmp
+            }
+          }
+        }
+      } else {
+        for(let k=0;k<half;k++){
+          const b=Math.min(bands-1,Math.floor((k*bands)/half))
+          const eqG=opts.eqGains?opts.eqGains[Math.min(b,opts.eqGains.length-1)]:1
+          const bandAmp=envState[b]*eqG
           carRe[k]*=bandAmp;carIm[k]*=bandAmp
           if(k>0&&k<half){
             const rk=fftSize-k
@@ -1210,7 +1245,7 @@ function buildEqGains(bands){
 // UI STATE
 // ═══════════════════════════════════════════════════════
 const uiState = {
-  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,wet:1.0,gain:2000,iter:2,smooth:3,maxPow:11,crossover:false,mode:'bp',xDecay:0.9999,active:true},
+  voc:{bands:46,q:0.95,shift:0,attack:0.01,release:0.1,fftAttack:0,fftRelease:0,wet:1.0,gain:2000,iter:2,smooth:3,maxPow:10,crossover:false,mode:'bp',xDecay:0.9999,active:true},
   mbc:{ratio:2,attack:0.01,decay:0.001,filterIter:2,q:0.3,freqs:[200,200,3000,3000],thresholds:[1,0.75,1],active:true},
   in1script:{active:false,code:''},
   osc:{wave:'sawtooth',gain:0.1,super:8,detune:0.15,notes:[30,42,54,57,61,66],active:true,
@@ -1361,8 +1396,10 @@ function buildVocOpts(){
   const mr=((v.mode||((v.crossover)?'cross':'bp'))+'').toLowerCase()
   const mode=(mr==='fft')?'fft':((mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':(mr==='olabp')?'olabp':'bp'))
   v.mode=mode;v.crossover=(mode==='cross')
+  const envAttack=(mode==='fft')?((v.fftAttack??v.attack)??0):v.attack
+  const envRelease=(mode==='fft')?((v.fftRelease??v.release)??0):v.release
   const smooth=(mode==='fft')?(v.smooth!=null?+v.smooth:0):(v.smooth|0)
-  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,smooth,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
+  vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack,envRelease,q:v.q,filterIter:v.iter,shift:v.shift,smooth,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
   if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,smooth,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
 }
 function rebuildVocState(){
@@ -1677,8 +1714,8 @@ const sliderDefs=[
   {id:'sl_voc_bands',valId:'voc_bands_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.voc.bands=Math.round(v);rebuildVocState()}},
   {id:'sl_voc_q',valId:'voc_q_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.voc.q=v;rebuildVocState()}},
   {id:'sl_voc_shift',valId:'voc_shift_val',fmt:v=>v.toFixed(1)+' st',cb:v=>uiState.voc.shift=v},
-  {id:'sl_voc_attack',valId:'voc_attack_val',fmt:v=>v.toFixed(3),cb:v=>{uiState.voc.attack=v;rebuildVocState()}},
-  {id:'sl_voc_release',valId:'voc_release_val',fmt:v=>v.toFixed(3),cb:v=>{uiState.voc.release=v;rebuildVocState()}},
+  {id:'sl_voc_attack',valId:'voc_attack_val',fmt:v=>v.toFixed(3),cb:v=>{const m=((uiState.voc.mode||'bp')+'').toLowerCase();if(m==='fft')uiState.voc.fftAttack=v;else uiState.voc.attack=v;rebuildVocState()}},
+  {id:'sl_voc_release',valId:'voc_release_val',fmt:v=>v.toFixed(3),cb:v=>{const m=((uiState.voc.mode||'bp')+'').toLowerCase();if(m==='fft')uiState.voc.fftRelease=v;else uiState.voc.release=v;rebuildVocState()}},
   {id:'sl_voc_wet',valId:'voc_wet_val',fmt:v=>v.toFixed(2),cb:v=>uiState.voc.wet=v},
   {id:'sl_voc_gain',valId:'voc_gain_val',fmt:v=>Math.round(v)+'',cb:v=>uiState.voc.gain=Math.round(v)},
   {id:'sl_voc_iter',valId:'voc_iter_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.voc.iter=Math.round(v);rebuildVocState()}},
@@ -1782,48 +1819,48 @@ function _normVocMode(m){
 }
 function _cacheVocParams(mode){
   mode=_normVocMode(mode)
-  _vocModeCache[mode]={
-    bands:uiState.voc.bands,
-    q:uiState.voc.q,
-    shift:uiState.voc.shift,
-    attack:uiState.voc.attack,
-    release:uiState.voc.release,
-    wet:uiState.voc.wet,
-    gain:uiState.voc.gain,
-    iter:uiState.voc.iter,
-    smooth:uiState.voc.smooth,
-    maxPow:uiState.voc.maxPow,
-    xDecay:uiState.voc.xDecay,
+  if(mode==='fft'){
+    _vocModeCache.fftBands=uiState.voc.bands
+    return
   }
+  // BP/BANDCOMB/OLA share everything; CROSS shares everything except bands/Q/filter-iter.
+  // So we only persist those 3 values per group.
+  const bqi={bands:uiState.voc.bands,q:uiState.voc.q,iter:uiState.voc.iter}
+  if(mode==='cross') _vocModeCache.crossBQI=bqi
+  else _vocModeCache.sharedBQI=bqi
 }
 function _restoreVocParams(mode){
   mode=_normVocMode(mode)
-  const c=_vocModeCache[mode]
+  if(mode==='fft'){
+    // Restore FFT-only band count (everything else uses shared sliders).
+    if(uiState.voc.maxPow==null) uiState.voc.maxPow=10
+    const pow=Math.max(8,Math.min(16,uiState.voc.maxPow|0))
+    const fftSize=1<<pow
+    const maxBands=Math.min(1024,fftSize)
+    if(_vocModeCache.fftBands!=null) uiState.voc.bands=_vocModeCache.fftBands
+    uiState.voc.bands=Math.max(1,Math.min(maxBands,uiState.voc.bands|0))
+    if(uiState.voc.fftAttack==null) uiState.voc.fftAttack=0
+    if(uiState.voc.fftRelease==null) uiState.voc.fftRelease=0
+    return
+  }
+  const c=(mode==='cross')?(_vocModeCache.crossBQI||_vocModeCache.sharedBQI):(_vocModeCache.sharedBQI||_vocModeCache.crossBQI)
   if(c){
     uiState.voc.bands=c.bands
     uiState.voc.q=c.q
-    uiState.voc.shift=c.shift
-    uiState.voc.attack=c.attack
-    uiState.voc.release=c.release
-    uiState.voc.wet=c.wet
-    uiState.voc.gain=c.gain
     uiState.voc.iter=c.iter
-    uiState.voc.smooth=c.smooth
-    uiState.voc.maxPow=c.maxPow
-    uiState.voc.xDecay=c.xDecay
-  } else if(mode==='fft'){
-    // sensible defaults so switching mid-run doesn't "silence" the output
-    uiState.voc.bands=Math.min(128,uiState.voc.bands||32)
-    uiState.voc.maxPow=uiState.voc.maxPow||11
-    uiState.voc.smooth=0
-    uiState.voc.gain=2000
   }
 }
 function setVocMode(mode){
   const prev=_normVocMode(uiState.voc.mode||'bp')
-  _cacheVocParams(prev)
   const m=_normVocMode(mode||'bp')
-  uiState.voc.mode=(m==='fft')?'fft':((m==='bandcomb')?'bandcomb':((m==='cross')?'cross':(m==='olabp')?'olabp':'bp'))
+  const next=(m==='fft')?'fft':((m==='bandcomb')?'bandcomb':((m==='cross')?'cross':(m==='olabp')?'olabp':'bp'))
+
+  // Persist per-group (bands/Q/iter) when leaving a non-FFT mode.
+  if(prev!=='fft') _cacheVocParams(prev)
+  // Persist FFT-only band count when leaving FFT.
+  if(prev==='fft') _cacheVocParams('fft')
+
+  uiState.voc.mode=next
   uiState.voc.crossover=(uiState.voc.mode==='cross')
   _restoreVocParams(uiState.voc.mode)
   syncVocModeUi();rebuildVocState()
@@ -1836,6 +1873,12 @@ function syncVocModeUi(){
     const el=document.getElementById(map[k])
     if(el) el.classList.toggle('active',mode===k)
   })
+  const setVal=(sliderId,valId,value,fmt)=>{
+    const el=document.getElementById(sliderId)
+    const lbl=document.getElementById(valId)
+    if(el) el.value=value
+    if(lbl) lbl.textContent=fmt(value)
+  }
   const showRow=(sliderId,show)=>{
     const el=document.getElementById(sliderId)
     const row=el?.closest('.ctrl-row')
@@ -1844,17 +1887,23 @@ function syncVocModeUi(){
   // FFT mode hides incompatible controls (e.g. Q/“resonance”, filter iter)
   const fftMode=(mode==='fft')
   showRow('sl_voc_q',!fftMode)
-  // FFT uses attack/release envelope follower (exp), so keep these visible.
-  showRow('sl_voc_attack',true)
-  showRow('sl_voc_release',true)
+  // FFT mode uses separate attack/release values (kept in uiState.voc.fftAttack/fftRelease).
+  const atkEl=document.getElementById('sl_voc_attack')
+  const relEl=document.getElementById('sl_voc_release')
+  if(atkEl) atkEl.min=fftMode?'0':'0.001'
+  if(relEl) relEl.min=fftMode?'0':'0.01'
+  const atkV=fftMode?(uiState.voc.fftAttack??uiState.voc.attack):uiState.voc.attack
+  const relV=fftMode?(uiState.voc.fftRelease??uiState.voc.release):uiState.voc.release
+  setVal('sl_voc_attack','voc_attack_val',atkV,v=>(+v).toFixed(3))
+  setVal('sl_voc_release','voc_release_val',relV,v=>(+v).toFixed(3))
   showRow('sl_voc_iter',!fftMode)
   showRow('sl_voc_xdecay',!fftMode)
 
   // Mode-dependent ranges/labels
   const bandsSl=document.getElementById('sl_voc_bands')
   if(bandsSl){
-    const fftHalf=fftMode?((1<<Math.max(8,Math.min(16,uiState.voc.maxPow|0)))>>1):256
-    bandsSl.max=fftMode?String(Math.min(1024,fftHalf)):'256'
+    const fftSize=fftMode?(1<<Math.max(8,Math.min(16,uiState.voc.maxPow|0))):256
+    bandsSl.max=fftMode?String(Math.min(1024,fftSize)):'256'
     const max=parseInt(bandsSl.max,10)
     if(uiState.voc.bands>max) uiState.voc.bands=max
     if(parseInt(bandsSl.value,10)!==uiState.voc.bands){
@@ -1862,6 +1911,12 @@ function syncVocModeUi(){
       const lbl=document.getElementById('voc_bands_val');if(lbl)lbl.textContent=Math.round(uiState.voc.bands)+''
     }
   }
+  // Keep base vocoder sliders in sync when switching modes (per-mode cache updates uiState).
+  setVal('sl_voc_q','voc_q_val',uiState.voc.q,v=>(+v).toFixed(2))
+  setVal('sl_voc_shift','voc_shift_val',uiState.voc.shift,v=>(+v).toFixed(1)+' st')
+  setVal('sl_voc_wet','voc_wet_val',uiState.voc.wet,v=>(+v).toFixed(2))
+  setVal('sl_voc_iter','voc_iter_val',uiState.voc.iter,v=>Math.round(+v)+'')
+  setVal('sl_voc_xdecay','voc_xdecay_val',uiState.voc.xDecay,v=>(+v).toFixed(6))
   const shiftRow=document.getElementById('sl_voc_shift')?.closest('.ctrl-row')
   const shiftLbl=shiftRow?.querySelector('.ctrl-label')
   if(shiftLbl){
@@ -1887,11 +1942,8 @@ function syncVocModeUi(){
     if(mpLbl&&mpLbl.firstChild) mpLbl.firstChild.nodeValue=fftMode?'FFT SIZE ':'MAX SAMPLES '
     mp.disabled=fftMode?false:(mode!=='bandcomb'&&mode!=='olabp')
   }
-  const g=document.getElementById('sl_voc_gain')
-  if(g){
-    g.value=uiState.voc.gain
-    const gv=document.getElementById('voc_gain_val');if(gv)gv.textContent=Math.round(uiState.voc.gain)+''
-  }
+  setVal('sl_voc_maxpow','voc_maxpow_val',uiState.voc.maxPow,v=>'2^'+Math.round(+v))
+  setVal('sl_voc_gain','voc_gain_val',uiState.voc.gain,v=>Math.round(+v)+'')
 }
 // Legacy aliases (older builds/configs used crossover/toggle names)
 function toggleVocXover(){setVocMode(uiState.voc.crossover?'bp':'cross')}
@@ -2176,6 +2228,8 @@ function loadConfig(){
       }
       uiState.voc.mode=((uiState.voc.mode+'').toLowerCase()==='fft')?'fft':(((uiState.voc.mode+'').toLowerCase()==='bandcomb')?'bandcomb':(((uiState.voc.mode+'').toLowerCase()==='cross'||(uiState.voc.mode+'').toLowerCase()==='crossover')?'cross':((uiState.voc.mode+'').toLowerCase()==='olabp')?'olabp':'bp'))
       uiState.voc.crossover=(uiState.voc.mode==='cross')
+      if(uiState.voc.fftAttack==null) uiState.voc.fftAttack=0
+      if(uiState.voc.fftRelease==null) uiState.voc.fftRelease=0
       if(cfg.mbc)Object.assign(uiState.mbc,cfg.mbc)
       if(cfg.in1script)Object.assign(uiState.in1script,cfg.in1script)
       if(cfg.osc)Object.assign(uiState.osc,cfg.osc)
@@ -2276,7 +2330,8 @@ function syncUiFromState(){
   if(audioCtx){buildLiveOsc();rebuildVocState();flushMbc()}
 }
 function getStateValForSlider(id){
-  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_smooth':uiState.voc.smooth,'sl_voc_maxpow':uiState.voc.maxPow,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth,'sl_osc2_gain':uiState.osc2.gain,'sl_osc2_super':uiState.osc2.super,'sl_osc2_detune':uiState.osc2.detune,'sl_osc2_octave':uiState.osc2.octaveOffset,'sl_osc2_semi':uiState.osc2.semiOffset,'sl_osc2_filterCutoff':uiState.osc2.filterCutoff,'sl_osc2_filterRes':uiState.osc2.filterRes,'sl_osc2_filterPoles':uiState.osc2.filterPoles,'sl_osc2_filterPitchTrack':uiState.osc2.filterPitchTrack,'sl_osc2_dist':uiState.osc2.distAmount,'sl_osc2_delayMs':uiState.osc2.delayMs,'sl_osc2_delayFb':uiState.osc2.delayFb,'sl_osc2_delayMix':uiState.osc2.delayMix,'sl_osc2_chorusVoices':uiState.osc2.chorusVoices,'sl_osc2_chorusDel':uiState.osc2.chorusDel,'sl_osc2_chorusFb':uiState.osc2.chorusFb,'sl_osc2_chorusRate':uiState.osc2.chorusRate,'sl_osc2_chorusSize':uiState.osc2.chorusSize,'sl_osc2_lfoRate':uiState.osc2.lfoRate,'sl_osc2_lfoDepth':uiState.osc2.lfoDepth}
+  const vocIsFft=(((uiState.voc.mode||'bp')+'').toLowerCase()==='fft')
+  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':vocIsFft?(uiState.voc.fftAttack??uiState.voc.attack):uiState.voc.attack,'sl_voc_release':vocIsFft?(uiState.voc.fftRelease??uiState.voc.release):uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_smooth':uiState.voc.smooth,'sl_voc_maxpow':uiState.voc.maxPow,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth,'sl_osc2_gain':uiState.osc2.gain,'sl_osc2_super':uiState.osc2.super,'sl_osc2_detune':uiState.osc2.detune,'sl_osc2_octave':uiState.osc2.octaveOffset,'sl_osc2_semi':uiState.osc2.semiOffset,'sl_osc2_filterCutoff':uiState.osc2.filterCutoff,'sl_osc2_filterRes':uiState.osc2.filterRes,'sl_osc2_filterPoles':uiState.osc2.filterPoles,'sl_osc2_filterPitchTrack':uiState.osc2.filterPitchTrack,'sl_osc2_dist':uiState.osc2.distAmount,'sl_osc2_delayMs':uiState.osc2.delayMs,'sl_osc2_delayFb':uiState.osc2.delayFb,'sl_osc2_delayMix':uiState.osc2.delayMix,'sl_osc2_chorusVoices':uiState.osc2.chorusVoices,'sl_osc2_chorusDel':uiState.osc2.chorusDel,'sl_osc2_chorusFb':uiState.osc2.chorusFb,'sl_osc2_chorusRate':uiState.osc2.chorusRate,'sl_osc2_chorusSize':uiState.osc2.chorusSize,'sl_osc2_lfoRate':uiState.osc2.lfoRate,'sl_osc2_lfoDepth':uiState.osc2.lfoDepth}
   return id in map?map[id]:null
 }
 
@@ -2606,15 +2661,50 @@ function drawSpectrum(){
   const env=bandEnvDisplay,peaks=bandEnvPeak
   const n=env.length||uiState.voc.bands
   const bw=W/n
-  for(let i=0;i<n;i++){
-    const x=i*bw
-    const toH=v=>{if(v<=0)return 0;return Math.min(1,Math.log1p(v*40)/Math.log1p(12))}
-    const level=isPlaying?toH(env[i]):0
-    const peakLevel=toH(peaks[i])
-    const bh=Math.max(1,level*(H-4)),ph=peakLevel*(H-4)
-    const t=i/n,r=Math.round(t*255),g=Math.round(229-t*100),b2=Math.round(255-t*200)
-    specCtx.fillStyle=`rgba(${r},${g},${b2},0.85)`;specCtx.fillRect(x+1,H-bh,bw-2,bh)
-    if(ph>bh){specCtx.fillStyle=`rgb(${r},${g},${b2})`;specCtx.fillRect(x+1,H-ph-2,bw-2,2)}
+  const toH=v=>{if(v<=0)return 0;return Math.min(1,Math.log1p(v*40)/Math.log1p(12))}
+  const Hs=(H-4)
+  if(bw>=3){
+    for(let i=0;i<n;i++){
+      const x=i*bw
+      const level=isPlaying?toH(env[i]):0
+      const peakLevel=toH(peaks[i])
+      const bh=Math.max(1,level*Hs),ph=peakLevel*Hs
+      const t=i/n,r=Math.round(t*255),g=Math.round(229-t*100),b2=Math.round(255-t*200)
+      specCtx.fillStyle=`rgba(${r},${g},${b2},0.85)`;specCtx.fillRect(x+1,H-bh,bw-2,bh)
+      if(ph>bh){specCtx.fillStyle=`rgb(${r},${g},${b2})`;specCtx.fillRect(x+1,H-ph-2,bw-2,2)}
+    }
+  } else if(n>W){
+    // Too many bands for the available pixels: downsample by taking the max per pixel column.
+    const step=n/Math.max(1,W)
+    for(let px=0;px<W;px++){
+      const b0=Math.floor(px*step)
+      const b1=Math.max(b0+1,Math.floor((px+1)*step))
+      let m=0,mp=0
+      for(let b=b0;b<b1 && b<n;b++){
+        const ev=env[b]||0,pv=peaks[b]||0
+        if(ev>m) m=ev
+        if(pv>mp) mp=pv
+      }
+      const level=isPlaying?toH(m):0
+      const peakLevel=toH(mp)
+      const bh=Math.max(1,level*Hs),ph=peakLevel*Hs
+      const t=px/Math.max(1,(W-1)),r=Math.round(t*255),g=Math.round(229-t*100),b2=Math.round(255-t*200)
+      specCtx.fillStyle=`rgba(${r},${g},${b2},0.95)`;specCtx.fillRect(px,H-bh,1,bh)
+      if(ph>bh){specCtx.fillStyle=`rgb(${r},${g},${b2})`;specCtx.fillRect(px,H-ph-2,1,2)}
+    }
+  } else {
+    // Narrow bars: fill the full pixel span for each band (no 2px gap).
+    for(let i=0;i<n;i++){
+      const x0=Math.floor(i*bw)
+      const x1=Math.floor((i+1)*bw)
+      const w=Math.max(1,x1-x0)
+      const level=isPlaying?toH(env[i]):0
+      const peakLevel=toH(peaks[i])
+      const bh=Math.max(1,level*Hs),ph=peakLevel*Hs
+      const t=i/n,r=Math.round(t*255),g=Math.round(229-t*100),b2=Math.round(255-t*200)
+      specCtx.fillStyle=`rgba(${r},${g},${b2},0.9)`;specCtx.fillRect(x0,H-bh,w,bh)
+      if(ph>bh){specCtx.fillStyle=`rgb(${r},${g},${b2})`;specCtx.fillRect(x0,H-ph-2,w,2)}
+    }
   }
 
   // Vignette
@@ -2675,7 +2765,9 @@ function renderWav(){
     const mr=((uiState.voc.mode||((uiState.voc.crossover)?'cross':'bp'))+'').toLowerCase()
     const mode=(mr==='fft')?'fft':((mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':(mr==='olabp')?'olabp':'bp'))
     const smooth=(mode==='fft')?0:(uiState.voc.smooth|0)
-    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,smooth,maxPow:uiState.voc.maxPow|0,crossover:mode==='cross',mode,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
+    const envAttack=(mode==='fft')?((uiState.voc.fftAttack??uiState.voc.attack)??0):uiState.voc.attack
+    const envRelease=(mode==='fft')?((uiState.voc.fftRelease??uiState.voc.release)??0):uiState.voc.release
+    const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack,envRelease,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,smooth,maxPow:uiState.voc.maxPow|0,crossover:mode==='cross',mode,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
     const offVocOptsR={...offVocOpts,shift:offVocOpts.shift+uiState.stereoWidth*0.5}
     const offVocState=_getVocState(sr,offVocOpts,0)
     const offVocStateR=_getVocState(sr,offVocOptsR,1)
