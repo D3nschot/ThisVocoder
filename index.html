@@ -316,6 +316,7 @@
             <button class="src-btn active" id="vocModeBp" onclick="setVocMode('bp')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">BP</button>
             <button class="src-btn" id="vocModeCross" onclick="setVocMode('cross')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">CROSS</button>
             <button class="src-btn" id="vocModeComb" onclick="setVocMode('bandcomb')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">BANDCOMB</button>
+            <button class="src-btn" id="vocModeFftBp" onclick="setVocMode('olabp')" style="flex:1;padding:6px 4px;font-size:9px;letter-spacing:1px;">BP OLA (slow)</button>
           </div>
         </div>
         <div class="ctrl-row"><div class="ctrl-label">CROSS NORM DECAY <span class="ctrl-val" id="voc_xdecay_val">0.999900</span></div><input type="range" id="sl_voc_xdecay" min="0.999" max="1" step="0.000001" value="0.9999"></div>
@@ -352,27 +353,61 @@
   <!-- OSC -->
   <div class="module osc-module" id="oscModule">
     <div class="module-header">
-      <div><div class="module-title">OSCILLATOR</div><div class="module-sub">Carrier signal generator</div></div>
-      <div class="module-bypass osc-accent on" id="oscBypass" onclick="toggleBypass(&#39;osc&#39;)"><span>ACTIVE</span><div class="toggle-dot"></div></div>
+      <div><div class="module-title">OSCILLATOR</div><div class="module-sub">Dual carrier signal generator</div></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;letter-spacing:1px;color:var(--text-dim);">VOICE 2</span>
+          <div class="module-bypass" id="osc2Bypass" onclick="toggleBypass('osc2')"><span style="font-size:9px;letter-spacing:1px;">OFF</span><div class="toggle-dot"></div></div>
+        </div>
+        <div class="module-bypass osc-accent on" id="oscBypass" onclick="toggleBypass('osc')"><span>ACTIVE</span><div class="toggle-dot"></div></div>
+      </div>
     </div>
     <div class="module-body" style="display:flex;flex-direction:column;gap:16px;">
-      <div class="wave-group">
-        <div class="wave-label">WAVEFORM</div>
-        <div class="wave-btns">
-          <button class="wave-btn" data-wave="sine" onclick="setWave(&#39;sine&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0 7 Q7 0 14 7 Q21 14 28 7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>SINE</button>
-          <button class="wave-btn active" data-wave="sawtooth" onclick="setWave(&#39;sawtooth&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SAW</button>
-          <button class="wave-btn" data-wave="square" onclick="setWave(&#39;square&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SQR</button>
-          <button class="wave-btn" data-wave="triangle" onclick="setWave(&#39;triangle&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>TRI</button>
-          <button class="wave-btn" data-wave="indigo" onclick="setWave(&#39;indigo&#39;)"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0,7 C1,4 2,9 3,6 C4,3 5,10 6,7 C7,2 8,11 9,5 C10,8 11,3 12,9 C13,5 14,8 15,4 C16,10 17,6 18,3 C19,9 20,5 21,8 C22,4 23,10 24,6 C25,3 26,9 27,5 L28,7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>INDIGO</button>
+      <!-- Voice 1 Section -->
+      <div style="border-left:2px solid var(--accent3);padding-left:12px;">
+        <div class="wave-label" style="margin-bottom:8px;color:var(--accent3);">VOICE 1</div>
+        <div class="wave-group" id="waveGroup1">
+          <div class="wave-label">WAVEFORM</div>
+          <div class="wave-btns">
+            <button class="wave-btn" data-wave="sine" onclick="setWave('sine')"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0 7 Q7 0 14 7 Q21 14 28 7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>SINE</button>
+            <button class="wave-btn active" data-wave="sawtooth" onclick="setWave('sawtooth')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SAW</button>
+            <button class="wave-btn" data-wave="square" onclick="setWave('square')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SQR</button>
+            <button class="wave-btn" data-wave="triangle" onclick="setWave('triangle')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>TRI</button>
+            <button class="wave-btn" data-wave="indigo" onclick="setWave('indigo')"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0,7 C1,4 2,9 3,6 C4,3 5,10 6,7 C7,2 8,11 9,5 C10,8 11,3 12,9 C13,5 14,8 15,4 C16,10 17,6 18,3 C19,9 20,5 21,8 C22,4 23,10 24,6 C25,3 26,9 27,5 L28,7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>INDIGO</button>
+          </div>
+        </div>
+        <div class="ctrl-grid" style="margin-top:10px;">
+          <div class="ctrl-row"><div class="ctrl-label">GAIN <span class="ctrl-val" id="osc_gain_val">0.10</span></div><input type="range" id="sl_osc_gain" min="0" max="1" step="0.01" value="0.1"></div>
+          <div class="ctrl-row"><div class="ctrl-label">SUPER <span class="ctrl-val" id="osc_super_val">8</span></div><input type="range" id="sl_osc_super" min="1" max="16" step="1" value="8"></div>
+          <div class="ctrl-row"><div class="ctrl-label">DETUNE <span class="ctrl-val" id="osc_detune_val">0.15</span></div><input type="range" id="sl_osc_detune" min="0" max="1" step="0.01" value="0.15"></div>
         </div>
       </div>
-      <div class="ctrl-grid">
-        <div class="ctrl-row"><div class="ctrl-label">GAIN <span class="ctrl-val" id="osc_gain_val">0.10</span></div><input type="range" id="sl_osc_gain" min="0" max="1" step="0.01" value="0.1"></div>
-        <div class="ctrl-row"><div class="ctrl-label">SUPER VOICES <span class="ctrl-val" id="osc_super_val">8</span></div><input type="range" id="sl_osc_super" min="1" max="16" step="1" value="8"></div>
-        <div class="ctrl-row"><div class="ctrl-label">DETUNE <span class="ctrl-val" id="osc_detune_val">0.15</span></div><input type="range" id="sl_osc_detune" min="0" max="1" step="0.01" value="0.15"></div>
+      <!-- Voice 2 Section -->
+      <div style="border-left:2px solid var(--accent);padding-left:12px;">
+        <div class="wave-label" style="margin-bottom:8px;color:var(--accent);">VOICE 2</div>
+        <div class="ctrl-grid">
+          <div class="ctrl-row"><div class="ctrl-label">OCTAVE <span class="ctrl-val" id="osc2_octave_val">0</span></div><input type="range" id="sl_osc2_octave" min="-4" max="4" step="1" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">SEMITONES <span class="ctrl-val" id="osc2_semi_val">7</span></div><input type="range" id="sl_osc2_semi" min="-11" max="11" step="1" value="7"></div>
+          <div class="ctrl-row"><div class="ctrl-label">GAIN <span class="ctrl-val" id="osc2_gain_val">0.10</span></div><input type="range" id="sl_osc2_gain" min="0" max="1" step="0.01" value="0.1"></div>
+        </div>
+        <div class="wave-group" id="waveGroup2" style="margin-top:10px;">
+          <div class="wave-label">WAVEFORM</div>
+          <div class="wave-btns">
+            <button class="wave-btn" data-wave="sine" onclick="setWave2('sine')"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0 7 Q7 0 14 7 Q21 14 28 7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>SINE</button>
+            <button class="wave-btn active" data-wave="sawtooth" onclick="setWave2('sawtooth')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 14,2 14,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SAW</button>
+            <button class="wave-btn" data-wave="square" onclick="setWave2('square')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 0,2 14,2 14,12 28,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>SQR</button>
+            <button class="wave-btn" data-wave="triangle" onclick="setWave2('triangle')"><svg class="wave-icon" viewBox="0 0 28 14"><polyline points="0,12 7,2 21,12 28,2" fill="none" stroke="currentColor" stroke-width="1.5"></polyline></svg>TRI</button>
+            <button class="wave-btn" data-wave="indigo" onclick="setWave2('indigo')"><svg class="wave-icon" viewBox="0 0 28 14"><path d="M0,7 C1,4 2,9 3,6 C4,3 5,10 6,7 C7,2 8,11 9,5 C10,8 11,3 12,9 C13,5 14,8 15,4 C16,10 17,6 18,3 C19,9 20,5 21,8 C22,4 23,10 24,6 C25,3 26,9 27,5 L28,7" fill="none" stroke="currentColor" stroke-width="1.5"></path></svg>INDIGO</button>
+          </div>
+        </div>
+        <div class="ctrl-grid" style="margin-top:10px;">
+          <div class="ctrl-row"><div class="ctrl-label">SUPER <span class="ctrl-val" id="osc2_super_val">8</span></div><input type="range" id="sl_osc2_super" min="1" max="16" step="1" value="8"></div>
+          <div class="ctrl-row"><div class="ctrl-label">DETUNE <span class="ctrl-val" id="osc2_detune_val">0.15</span></div><input type="range" id="sl_osc2_detune" min="0" max="1" step="0.01" value="0.15"></div>
+        </div>
       </div>
+      <!-- Shared Filter Section -->
       <div style="margin-top:14px;">
-        <div class="freq-label" style="margin-bottom:8px;">FILTER</div>
+        <div class="freq-label" style="margin-bottom:8px;">FILTER (SHARED)</div>
         <div class="ctrl-grid">
           <div class="ctrl-row">
             <div class="ctrl-label" style="margin-bottom:4px;">TYPE</div>
@@ -390,8 +425,17 @@
           </div>
         </div>
       </div>
+      <!-- Shared FX Section -->
       <div style="margin-top:14px;">
-        <div class="freq-label" style="margin-bottom:8px;">FX CHAIN</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div class="freq-label">FX CHAIN</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:9px;letter-spacing:1px;color:var(--text-dim);">V2:</span>
+            <div class="module-bypass osc-accent" id="shareFxToggle" onclick="toggleShareFx()" style="margin:0;"><span style="font-size:9px;letter-spacing:1px;">FX OFF</span><div class="toggle-dot"></div></div>
+            <button class="src-btn" id="shareFxOff" onclick="setShareFx(false)" style="padding:4px 6px;font-size:8px;letter-spacing:1px;">FX</button>
+            <button class="src-btn" id="shareFxOn" onclick="setShareFx(true)" style="padding:4px 6px;font-size:8px;letter-spacing:1px;">FX+LFOf</button>
+          </div>
+        </div>
         <div class="ctrl-grid">
           <div class="ctrl-row"><div class="ctrl-label">DISTORTION <span class="ctrl-val" id="osc_dist_val">0.00</span></div><input type="range" id="sl_osc_dist" min="0" max="1" step="0.01" value="0"></div>
           <div class="ctrl-row"><div class="ctrl-label">DELAY MS <span class="ctrl-val" id="osc_delayMs_val">0 ms</span></div><input type="range" id="sl_osc_delayMs" min="0" max="1000" step="1" value="0"></div>
@@ -404,9 +448,10 @@
           <div class="ctrl-row"><div class="ctrl-label">CHORUS SIZE <span class="ctrl-val" id="osc_chorusSize_val">256 smp</span></div><input type="range" id="sl_osc_chorusSize" min="2" max="4096" step="1" value="256"></div>
         </div>
       </div>
+      <!-- Shared LFO Section -->
       <div style="margin-top:14px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div class="freq-label">LFO</div>
+          <div class="freq-label">LFO (SHARED)</div>
           <div class="module-bypass osc-accent" id="lfoToggle" onclick="toggleLfo()" style="margin:0;"><span style="font-size:9px;letter-spacing:1px;">OFF</span><div class="toggle-dot"></div></div>
         </div>
         <div class="ctrl-grid">
@@ -424,6 +469,43 @@
           </div>
           <div class="ctrl-row"><div class="ctrl-label">RATE <span class="ctrl-val" id="osc_lfoRate_val">1.00 Hz</span></div><input type="range" id="sl_osc_lfoRate" min="0.01" max="20" step="0.01" value="1"></div>
           <div class="ctrl-row"><div class="ctrl-label">DEPTH <span class="ctrl-val" id="osc_lfoDepth_val">0.0</span></div><input type="range" id="sl_osc_lfoDepth" min="0" max="5000" step="1" value="0"></div>
+        </div>
+      </div>
+      <!-- Voice 2 Separate FX/LFO (when not shared) -->
+      <div style="margin-top:14px;" id="osc2SeparateSection">
+        <div class="freq-label" style="margin-bottom:8px;color:var(--accent);">VOICE 2 SEPARATE FX</div>
+        <div class="ctrl-grid">
+          <div class="ctrl-row"><div class="ctrl-label">DISTORTION <span class="ctrl-val" id="osc2_dist_val">0.00</span></div><input type="range" id="sl_osc2_dist" min="0" max="1" step="0.01" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">DELAY MS <span class="ctrl-val" id="osc2_delayMs_val">0 ms</span></div><input type="range" id="sl_osc2_delayMs" min="0" max="1000" step="1" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">DELAY FB <span class="ctrl-val" id="osc2_delayFb_val">0.00</span></div><input type="range" id="sl_osc2_delayFb" min="0" max="0.99" step="0.01" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">DELAY MIX <span class="ctrl-val" id="osc2_delayMix_val">0.00</span></div><input type="range" id="sl_osc2_delayMix" min="0" max="1" step="0.01" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">CHORUS VOICES <span class="ctrl-val" id="osc2_chorusVoices_val">0</span></div><input type="range" id="sl_osc2_chorusVoices" min="0" max="16" step="1" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">CHORUS DEPTH <span class="ctrl-val" id="osc2_chorusDel_val">0.50</span></div><input type="range" id="sl_osc2_chorusDel" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="ctrl-row"><div class="ctrl-label">CHORUS FB <span class="ctrl-val" id="osc2_chorusFb_val">0.00</span></div><input type="range" id="sl_osc2_chorusFb" min="-0.99" max="0.99" step="0.01" value="0"></div>
+          <div class="ctrl-row"><div class="ctrl-label">CHORUS RATE <span class="ctrl-val" id="osc2_chorusRate_val">0.20 Hz</span></div><input type="range" id="sl_osc2_chorusRate" min="0.001" max="5" step="0.001" value="0.2"></div>
+          <div class="ctrl-row"><div class="ctrl-label">CHORUS SIZE <span class="ctrl-val" id="osc2_chorusSize_val">256 smp</span></div><input type="range" id="sl_osc2_chorusSize" min="2" max="4096" step="1" value="256"></div>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div class="freq-label" style="color:var(--accent);">VOICE 2 LFO</div>
+            <div class="module-bypass osc-accent" id="lfo2Toggle" onclick="toggleLfo2()" style="margin:0;"><span style="font-size:9px;letter-spacing:1px;">OFF</span><div class="toggle-dot"></div></div>
+          </div>
+          <div class="ctrl-grid">
+            <div class="ctrl-row">
+              <div class="ctrl-label" style="margin-bottom:4px;">TARGET</div>
+              <select id="osc2_lfoTarget" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:9px;padding:5px 8px;">
+                <option value="filter">FILTER</option><option value="gain">GAIN</option><option value="pitch">PITCH</option>
+              </select>
+            </div>
+            <div class="ctrl-row">
+              <div class="ctrl-label" style="margin-bottom:4px;">SHAPE</div>
+              <select id="osc2_lfoShape" class="kb-select" style="width:100%;background:var(--surface);color:var(--accent3);border:1px solid var(--border);font-family:&#39;IBM Plex Mono&#39;,monospace;font-size:9px;padding:5px 8px;">
+                <option value="sine">SINE</option><option value="square">SQUARE</option><option value="sawtooth">SAW</option><option value="triangle">TRI</option>
+              </select>
+            </div>
+            <div class="ctrl-row"><div class="ctrl-label">RATE <span class="ctrl-val" id="osc2_lfoRate_val">1.00 Hz</span></div><input type="range" id="sl_osc2_lfoRate" min="0.01" max="20" step="0.01" value="1"></div>
+            <div class="ctrl-row"><div class="ctrl-label">DEPTH <span class="ctrl-val" id="osc2_lfoDepth_val">0.0</span></div><input type="range" id="sl_osc2_lfoDepth" min="0" max="5000" step="1" value="0"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -535,7 +617,7 @@ function _hpfCoeffs(fc,q,sr){
 function _getVocState(sr,o,ch=0){
   const n=Math.max(1,o.filterIter|0)
   const modeRaw=(o.mode||((o.crossover)?'cross':'bp'))+''
-  const mode=(modeRaw.toLowerCase()==='bandcomb')?'bandcomb':((modeRaw.toLowerCase()==='cross'||modeRaw.toLowerCase()==='crossover')?'cross':'bp')
+  const mode=(modeRaw.toLowerCase()==='bandcomb')?'bandcomb':((modeRaw.toLowerCase()==='cross'||modeRaw.toLowerCase()==='crossover')?'cross':(modeRaw.toLowerCase()==='olabp')?'olabp':'bp')
   const k=_key(sr,o.bands,o.q,n)+`_m${mode}`+`_ch${ch|0}`
   if(_state.has(k))return _state.get(k)
   const bands=o.bands
@@ -566,6 +648,9 @@ function _getVocState(sr,o,ch=0){
     const modDelays=carDelays.slice()
     const fb=Math.max(0,Math.min(0.999,o.q*0.995))
     st={mode:'bandcomb',xover:false,n,centres,bufLen,fb,modCombStates,carCombStates,modDelays,carDelays,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,lastShift:null,freqLow:o.freqLow,freqHigh:o.freqHigh}
+  }else if(mode==='olabp'){
+    const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
+    st={mode:'olabp',xover:false,n,centres,envStates:new Float64Array(bands),atkA1,atkB0,relA1,relB0,ch:ch|0,freqLow:o.freqLow,freqHigh:o.freqHigh,q:o.q,maxPow:o.maxPow==null?11:o.maxPow|0}
   }else{
     const centres=Array.from({length:bands},(_,i)=>o.freqLow*Math.pow(o.freqHigh/o.freqLow,i/(bands-1)))
     const bqCoeffs=centres.map(fc=>_bqCoeffs(fc,o.q,sr))
@@ -586,6 +671,37 @@ function _xoverSplit(x,xoverNodes,lpCoeffs,hpCoeffs,n,bands){
   }
   out[bands-1]=rem
   return out
+}
+
+// ── OLA-based biquad helpers (for olabp vocoder mode) ──
+const _OLA_BQ_INSTANCES={}
+const _OLA_BQ_WIN_CACHE={}
+function _hannWindow(N){if(_OLA_BQ_WIN_CACHE[N])return _OLA_BQ_WIN_CACHE[N];const w=Float32Array.from({length:N},(_,i)=>Math.sin(Math.PI*i/N)**2);_OLA_BQ_WIN_CACHE[N]=w;return w}
+function _bqCoeffsFft(freq,q,sr){const w0=2*Math.PI*freq/sr,sinw=Math.sin(w0),cosw=Math.cos(w0),alpha=sinw*(1-q),a0=1+alpha;return{b0:alpha/a0,b1:0,b2:-alpha/a0,a1:-2*cosw/a0,a2:(1-alpha)/a0}}
+function _getFftBqInst(id,olaSize){const inst=_OLA_BQ_INSTANCES[id];if(inst&&inst.olaSize===olaSize)return inst;const hopSize=olaSize>>2;const bufLen=olaSize*8;const ni={olaSize,olaMask:olaSize-1,bufLen,bufMask:bufLen-1,hopSize,anaRing:new Float32Array(olaSize),writeHead:0,hopCount:hopSize,outBuf:new Float32Array(bufLen),outNorm:new Float32Array(bufLen),outWrite:0,readHead:0,primed:false,frameBuf:new Float32Array(olaSize),cFreq:-1,cQ:-1,cb0:0,cb1:0,cb2:0,ca1:0,ca2:0};_OLA_BQ_INSTANCES[id]=ni;return ni}
+function _olaBqTick(id,sample,sr,freq,q,olaSize,stages){
+  const s=_getFftBqInst(id,olaSize);const win=_hannWindow(olaSize);const olaMask=s.olaMask;const bufMask=s.bufMask;
+  s.anaRing[s.writeHead&olaMask]=sample;s.writeHead++;s.hopCount++;
+  if(s.writeHead>=olaSize&&s.hopCount>=s.hopSize){
+    s.hopCount=0;
+    if(freq!==s.cFreq||q!==s.cQ){s.cFreq=freq;s.cQ=q;const c=_bqCoeffsFft(freq,q,sr);s.cb0=c.b0;s.cb1=c.b1;s.cb2=c.b2;s.ca1=c.a1;s.ca2=c.a2}
+    const{cb0,cb1,cb2,ca1,ca2,frameBuf,hopSize:hp,anaRing}=s;const wh=s.writeHead;
+    for(let n=0;n<olaSize;n++)frameBuf[n]=anaRing[(wh-olaSize+n)&olaMask]*win[n];
+    const iters=Math.max(1,stages|0);
+    for(let st=0;st<iters;st++){
+      let x1=0,x2=0,y1=0,y2=0;
+      for(let n=0;n<olaSize;n++){const x=frameBuf[n];const y=cb0*x+cb1*x1+cb2*x2-ca1*y1-ca2*y2;x2=x1;x1=x;y2=y1;y1=y;frameBuf[n]=y}
+      x1=0;x2=0;y1=0;y2=0;
+      for(let n=olaSize-1;n>=0;n--){const x=frameBuf[n];const y=cb0*x+cb1*x1+cb2*x2-ca1*y1-ca2*y2;x2=x1;x1=x;y2=y1;y1=y;frameBuf[n]=y}
+    }
+    const ow=s.outWrite;
+    for(let n=0;n<olaSize;n++){const idx=(ow+n)&bufMask;const w2=win[n]*win[n];s.outBuf[idx]+=frameBuf[n]*win[n];s.outNorm[idx]+=w2}
+    s.outWrite=(ow+hp)&bufMask;
+    if(!s.primed){s.primed=true;s.readHead=(s.outWrite-hp+s.bufLen)&bufMask}
+  }
+  if(!s.primed)return 0;
+  const idx=s.readHead&bufMask;const norm=s.outNorm[idx];const out=norm>1e-8?s.outBuf[idx]/norm:0;
+  s.outBuf[idx]=0;s.outNorm[idx]=0;s.readHead=(s.readHead+1)&bufMask;return out
 }
 
 function _processSample(mod,car,sr,o,st){
@@ -620,6 +736,25 @@ function _processSample(mod,car,sr,o,st){
     out=out*o.outputGain/8
     if(o.wet<1)out=out*o.wet+car*(1-o.wet)
     //out=Math.max(-1,Math.min(1,out))
+    return out
+  }
+  if(mode==='olabp'){
+    const olaSize=1<<Math.max(8,Math.min(16,st.maxPow|0))
+    const chOff=(st.ch|0)*10000
+    for(let b=0;b<bands;b++){
+      const fc=st.centres[b]
+      const modBP=_olaBqTick(chOff+b,mod,sr,fc,st.q**1.5,olaSize,st.n)
+      const rect=Math.abs(modBP),prev=st.envStates[b]
+      st.envStates[b]=rect>prev?st.atkB0*rect+st.atkA1*prev:st.relB0*rect+st.relA1*prev
+    }
+    for(let b=0;b<bands;b++){
+      const fc=st.centres[b]
+      const carBP=_olaBqTick(chOff+20000+b,car,sr,fc,st.q**1.5,olaSize,st.n)
+      const eqG=o.eqGains?o.eqGains[Math.min(b,o.eqGains.length-1)]:1
+      out+=carBP*st.envStates[b]*eqG
+    }
+    out=(out/bands)*o.outputGain
+    if(o.wet<1)out=out*o.wet+car*(1-o.wet)
     return out
   }
   if(mode==='bandcomb'){
@@ -857,6 +992,12 @@ const uiState = {
     distAmount:0,delayMs:0,delayFb:0,delayMix:0,
     chorusVoices:0,chorusDel:0.5,chorusFb:0,chorusRate:0.2,chorusSize:256,
     lfoEnabled:false,lfoRate:1,lfoDepth:0,lfoShape:'sine',lfoTarget:'filter'},
+  osc2:{wave:'sawtooth',gain:0.1,super:8,detune:0.15,notes:[30,42,54,57,61,66],active:false,octaveOffset:0,semiOffset:7,
+    filterType:'off',filterCutoff:8000,filterRes:0.707,filterPoles:1,filterMulti:false,filterPitchTrack:0,
+    distAmount:0,delayMs:0,delayFb:0,delayMix:0,
+    chorusVoices:0,chorusDel:0.5,chorusFb:0,chorusRate:0.2,chorusSize:256,
+    lfoEnabled:false,lfoRate:1,lfoDepth:0,lfoShape:'sine',lfoTarget:'filter',
+    shareFx:false,shareLfoFlt:false},
   eq:{
     active:false,
     // points: {f:0..1, amp:0..4}  — sorted by f always
@@ -982,7 +1123,7 @@ let audioCtx=null,scriptNode=null,gainNode=null
 let mod1Buffer=null,mod1BufferL=null,mod1BufferR=null
 let mod2Buffer=null,mod2BufferL=null,mod2BufferR=null
 let mod1Pos=0,mod2Pos=0
-let isPlaying=false,liveOsc=null,liveOscR=null,vocState=null,vocStateR=null,vocOpts=null,vocOptsR=null
+let isPlaying=false,liveOsc=null,liveOscR=null,liveOsc2=null,liveOsc2R=null,vocState=null,vocStateR=null,vocOpts=null,vocOptsR=null
 
 let bandEnvDisplay=new Float32Array(256)
 let bandEnvPeak=new Float32Array(256)
@@ -992,7 +1133,7 @@ function buildVocOpts(){
   const v=uiState.voc
   const eqGains=buildEqGains(v.bands)
   const mr=((v.mode||((v.crossover)?'cross':'bp'))+'').toLowerCase()
-  const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':'bp')
+  const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':(mr==='olabp')?'olabp':'bp')
   v.mode=mode;v.crossover=(mode==='cross')
   vocOpts={bands:v.bands,freqLow:80,freqHigh:audioCtx?audioCtx.sampleRate/2:24000,envAttack:v.attack,envRelease:v.release,q:v.q,filterIter:v.iter,shift:v.shift,smooth:v.smooth|0,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
   if(vocOptsR) vocOptsR={...vocOptsR,freqHigh:vocOpts.freqHigh,shift:v.shift+uiState.stereoWidth*0.5,smooth:v.smooth|0,maxPow:v.maxPow|0,crossover:v.crossover,mode,xDecay:v.xDecay,wet:v.wet,outputGain:v.gain,eqGains}
@@ -1019,12 +1160,51 @@ function applyOscParams(osc){
   osc.lfo.setShape(o.lfoShape);osc.lfo.setTarget(o.lfoTarget)
   if(o.lfoEnabled)osc.lfo.enable();else osc.lfo.disable()
 }
+function applyOscParams2(osc){
+  const o=uiState.osc2
+  osc.setWave(o.wave);osc.setGain(o.gain)
+  osc.filter.setType(o.filterType);osc.filter.setCutoff(o.filterCutoff)
+  osc.filter.setResonance(o.filterRes);osc.filter.setPoles(o.filterPoles)
+  osc.filter.useMulti(o.filterMulti);osc.filter.targetPitch(o.filterPitchTrack)
+  osc.fx.distortion.setAmount(o.distAmount);osc.fx.delay.setTimeMs(o.delayMs)
+  osc.fx.delay.feedback=o.delayFb;osc.fx.delay.mix=o.delayMix
+  osc.fx.chorus.size(o.chorusSize);osc.fx.chorus.set(o.chorusVoices,o.chorusDel,o.chorusFb,o.chorusRate)
+  osc.lfo.setRate(o.lfoRate);osc.lfo.setDepth(o.lfoDepth)
+  osc.lfo.setShape(o.lfoShape);osc.lfo.setTarget(o.lfoTarget)
+  if(o.lfoEnabled)osc.lfo.enable();else osc.lfo.disable()
+}
+function applyOscParams2Shared(osc){
+  const o=uiState.osc
+  osc.fx.distortion.setAmount(o.distAmount);osc.fx.delay.setTimeMs(o.delayMs)
+  osc.fx.delay.feedback=o.delayFb;osc.fx.delay.mix=o.delayMix
+  osc.fx.chorus.size(o.chorusSize);osc.fx.chorus.set(o.chorusVoices,o.chorusDel,o.chorusFb,o.chorusRate)
+  if(uiState.osc2.shareLfoFlt){
+    osc.filter.setType(o.filterType);osc.filter.setCutoff(o.filterCutoff)
+    osc.filter.setResonance(o.filterRes);osc.filter.setPoles(o.filterPoles)
+    osc.filter.useMulti(o.filterMulti);osc.filter.targetPitch(o.filterPitchTrack)
+    osc.lfo.setRate(o.lfoRate);osc.lfo.setDepth(o.lfoDepth)
+    osc.lfo.setShape(o.lfoShape);osc.lfo.setTarget(o.lfoTarget)
+    if(o.lfoEnabled)osc.lfo.enable();else osc.lfo.disable()
+  }
+}
 function buildLiveOsc(){
   if(!audioCtx)return
   const notes=getKbActiveNotes(),noteList=notes.length?notes:(uiState.osc.notes.length?uiState.osc.notes:[60])
   liveOsc=new DSPOscillator(audioCtx.sampleRate);liveOsc.setSemitones(noteList);liveOsc.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(liveOsc)
   liveOscR=new DSPOscillator(audioCtx.sampleRate);liveOscR.setSemitones(noteList);liveOscR.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(liveOscR)
   if(liveOscR.phases.length>0)liveOscR.phases[0]=0
+  // Build OSC2 - use shared FX if enabled
+  const notes2=getKbActiveNotesWithOffset()
+  liveOsc2=new DSPOscillator(audioCtx.sampleRate);liveOsc2.setSemitones(notes2);liveOsc2.super(uiState.osc2.super,uiState.osc2.detune,1)
+  liveOsc2R=new DSPOscillator(audioCtx.sampleRate);liveOsc2R.setSemitones(notes2);liveOsc2R.super(uiState.osc2.super,uiState.osc2.detune,1)
+  if(uiState.osc2.shareFx){
+    applyOscParams2Shared(liveOsc2)
+    applyOscParams2Shared(liveOsc2R)
+  } else {
+    applyOscParams2(liveOsc2)
+    applyOscParams2(liveOsc2R)
+  }
+  if(liveOsc2R.phases.length>0)liveOsc2R.phases[0]=0
 }
 async function startAudio(){
   if(!mod1Buffer){alert('Load a modulator audio file into Input 1 first.');return}
@@ -1048,6 +1228,7 @@ async function startAudio(){
     if(kbNotes.length){
       if(liveOsc){liveOsc.setSemitones(kbNotes);liveOsc.superSet(uiState.osc.super,uiState.osc.detune,1)}
       if(liveOscR){liveOscR.setSemitones(kbNotes);liveOscR.superSet(uiState.osc.super,uiState.osc.detune,1)}
+      if(uiState.osc2.active){syncOsc2Notes()}
     }
     const stereo=uiState.stereo,vsR=stereo?(vocStateR||vocState):vocState,voOptsR=stereo?(vocOptsR||vocOpts):vocOpts
     for(let i=0;i<outL.length;i++){
@@ -1060,7 +1241,7 @@ async function startAudio(){
         const p=mod2Pos%mod2BufferL.length;mod2Pos++;carL=mod2BufferL[p];carR=stereo?mod2BufferR[p]:carL
       } else if(uiState.carrierSrc==='file1'&&mod1BufferL){
         const p=mod1Pos%mod1BufferL.length;carL=mod1BufferL[p];carR=stereo&&mod1BufferR?mod1BufferR[p]:carL
-      } else {carL=liveOsc.tick();if(stereo){carR=liveOscR.tick()}else carR=carL}
+      } else {carL=liveOsc.tick();if(stereo){carR=liveOscR.tick()}else carR=carL;if(uiState.osc2.active){carL+=liveOsc2.tick();if(stereo){carR+=liveOsc2R.tick()}}}
       let vL=uiState.bypassVoc?modL:(uiState.voc.active?_processSample(modL,carL,sr,vocOpts,vocState):carL)
       if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
       let vR
@@ -1285,21 +1466,41 @@ const sliderDefs=[
   {id:'sl_osc_gain',valId:'osc_gain_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.gain=v;if(liveOsc)liveOsc.setGain(v);if(liveOscR)liveOscR.setGain(v)}},
   {id:'sl_osc_super',valId:'osc_super_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc.super=Math.round(v);if(liveOsc)liveOsc.superSet(Math.round(v),uiState.osc.detune,1);if(liveOscR)liveOscR.superSet(Math.round(v),uiState.osc.detune,1)}},
   {id:'sl_osc_detune',valId:'osc_detune_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.detune=v;if(liveOsc)liveOsc.superSet(uiState.osc.super,v,1);if(liveOscR)liveOscR.superSet(uiState.osc.super,v,1)}},
-  {id:'sl_osc_filterCutoff',valId:'osc_filterCutoff_val',fmt:v=>Math.round(v)+' Hz',cb:v=>{uiState.osc.filterCutoff=v;if(liveOsc)liveOsc.filter.setCutoff(v);if(liveOscR)liveOscR.filter.setCutoff(v)}},
-  {id:'sl_osc_filterRes',valId:'osc_filterRes_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.filterRes=v;if(liveOsc)liveOsc.filter.setResonance(v);if(liveOscR)liveOscR.filter.setResonance(v)}},
-  {id:'sl_osc_filterPoles',valId:'osc_filterPoles_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc.filterPoles=Math.round(v);if(liveOsc)liveOsc.filter.setPoles(Math.round(v));if(liveOscR)liveOscR.filter.setPoles(Math.round(v))}},
-  {id:'sl_osc_filterPitchTrack',valId:'osc_filterPitchTrack_val',fmt:v=>v.toFixed(1)+'×',cb:v=>{uiState.osc.filterPitchTrack=v;if(liveOsc)liveOsc.filter.targetPitch(v);if(liveOscR)liveOscR.filter.targetPitch(v)}},
-  {id:'sl_osc_dist',valId:'osc_dist_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.distAmount=v;if(liveOsc)liveOsc.fx.distortion.setAmount(v);if(liveOscR)liveOscR.fx.distortion.setAmount(v)}},
-  {id:'sl_osc_delayMs',valId:'osc_delayMs_val',fmt:v=>Math.round(v)+' ms',cb:v=>{uiState.osc.delayMs=v;if(liveOsc)liveOsc.fx.delay.setTimeMs(v);if(liveOscR)liveOscR.fx.delay.setTimeMs(v)}},
-  {id:'sl_osc_delayFb',valId:'osc_delayFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.delayFb=v;if(liveOsc)liveOsc.fx.delay.feedback=v;if(liveOscR)liveOscR.fx.delay.feedback=v}},
-  {id:'sl_osc_delayMix',valId:'osc_delayMix_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.delayMix=v;if(liveOsc)liveOsc.fx.delay.mix=v;if(liveOscR)liveOscR.fx.delay.mix=v}},
-  {id:'sl_osc_chorusVoices',valId:'osc_chorusVoices_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc.chorusVoices=Math.round(v);if(liveOsc)liveOsc.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate)}},
-  {id:'sl_osc_chorusDel',valId:'osc_chorusDel_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.chorusDel=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate)}},
-  {id:'sl_osc_chorusFb',valId:'osc_chorusFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.chorusFb=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate)}},
-  {id:'sl_osc_chorusRate',valId:'osc_chorusRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc.chorusRate=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v)}},
-  {id:'sl_osc_chorusSize',valId:'osc_chorusSize_val',fmt:v=>Math.round(v)+' smp',cb:v=>{uiState.osc.chorusSize=Math.round(v);if(liveOsc)liveOsc.fx.chorus.size(Math.round(v));if(liveOscR)liveOscR.fx.chorus.size(Math.round(v))}},
-  {id:'sl_osc_lfoRate',valId:'osc_lfoRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc.lfoRate=v;if(liveOsc)liveOsc.lfo.setRate(v);if(liveOscR)liveOscR.lfo.setRate(v)}},
-  {id:'sl_osc_lfoDepth',valId:'osc_lfoDepth_val',fmt:v=>v.toFixed(1),cb:v=>{uiState.osc.lfoDepth=v;if(liveOsc)liveOsc.lfo.setDepth(v);if(liveOscR)liveOscR.lfo.setDepth(v)}},
+  {id:'sl_osc_filterCutoff',valId:'osc_filterCutoff_val',fmt:v=>Math.round(v)+' Hz',cb:v=>{uiState.osc.filterCutoff=v;if(liveOsc)liveOsc.filter.setCutoff(v);if(liveOscR)liveOscR.filter.setCutoff(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.setCutoff(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.setCutoff(v)}},
+  {id:'sl_osc_filterRes',valId:'osc_filterRes_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.filterRes=v;if(liveOsc)liveOsc.filter.setResonance(v);if(liveOscR)liveOscR.filter.setResonance(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.setResonance(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.setResonance(v)}},
+  {id:'sl_osc_filterPoles',valId:'osc_filterPoles_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc.filterPoles=Math.round(v);if(liveOsc)liveOsc.filter.setPoles(Math.round(v));if(liveOscR)liveOscR.filter.setPoles(Math.round(v));if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.setPoles(Math.round(v));if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.setPoles(Math.round(v))}},
+  {id:'sl_osc_filterPitchTrack',valId:'osc_filterPitchTrack_val',fmt:v=>v.toFixed(1)+'×',cb:v=>{uiState.osc.filterPitchTrack=v;if(liveOsc)liveOsc.filter.targetPitch(v);if(liveOscR)liveOscR.filter.targetPitch(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.targetPitch(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.targetPitch(v)}},
+  {id:'sl_osc_dist',valId:'osc_dist_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.distAmount=v;if(liveOsc)liveOsc.fx.distortion.setAmount(v);if(liveOscR)liveOscR.fx.distortion.setAmount(v);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.distortion.setAmount(v);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.distortion.setAmount(v)}},
+  {id:'sl_osc_delayMs',valId:'osc_delayMs_val',fmt:v=>Math.round(v)+' ms',cb:v=>{uiState.osc.delayMs=v;if(liveOsc)liveOsc.fx.delay.setTimeMs(v);if(liveOscR)liveOscR.fx.delay.setTimeMs(v);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.delay.setTimeMs(v);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.delay.setTimeMs(v)}},
+  {id:'sl_osc_delayFb',valId:'osc_delayFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.delayFb=v;if(liveOsc)liveOsc.fx.delay.feedback=v;if(liveOscR)liveOscR.fx.delay.feedback=v;if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.delay.feedback=v;if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.delay.feedback=v}},
+  {id:'sl_osc_delayMix',valId:'osc_delayMix_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.delayMix=v;if(liveOsc)liveOsc.fx.delay.mix=v;if(liveOscR)liveOscR.fx.delay.mix=v;if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.delay.mix=v;if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.delay.mix=v}},
+  {id:'sl_osc_chorusVoices',valId:'osc_chorusVoices_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc.chorusVoices=Math.round(v);if(liveOsc)liveOsc.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.chorus.set(Math.round(v),uiState.osc.chorusDel,uiState.osc.chorusFb,uiState.osc.chorusRate)}},
+  {id:'sl_osc_chorusDel',valId:'osc_chorusDel_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.chorusDel=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc.chorusVoices,v,uiState.osc.chorusFb,uiState.osc.chorusRate)}},
+  {id:'sl_osc_chorusFb',valId:'osc_chorusFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc.chorusFb=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,v,uiState.osc.chorusRate)}},
+  {id:'sl_osc_chorusRate',valId:'osc_chorusRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc.chorusRate=v;if(liveOsc)liveOsc.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v);if(liveOscR)liveOscR.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v);if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v);if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc.chorusVoices,uiState.osc.chorusDel,uiState.osc.chorusFb,v)}},
+  {id:'sl_osc_chorusSize',valId:'osc_chorusSize_val',fmt:v=>Math.round(v)+' smp',cb:v=>{uiState.osc.chorusSize=Math.round(v);if(liveOsc)liveOsc.fx.chorus.size(Math.round(v));if(liveOscR)liveOscR.fx.chorus.size(Math.round(v));if(uiState.osc2.shareFx&&liveOsc2)liveOsc2.fx.chorus.size(Math.round(v));if(uiState.osc2.shareFx&&liveOsc2R)liveOsc2R.fx.chorus.size(Math.round(v))}},
+  {id:'sl_osc_lfoRate',valId:'osc_lfoRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc.lfoRate=v;if(liveOsc)liveOsc.lfo.setRate(v);if(liveOscR)liveOscR.lfo.setRate(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.lfo.setRate(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.lfo.setRate(v)}},
+  {id:'sl_osc_lfoDepth',valId:'osc_lfoDepth_val',fmt:v=>v.toFixed(1),cb:v=>{uiState.osc.lfoDepth=v;if(liveOsc)liveOsc.lfo.setDepth(v);if(liveOscR)liveOscR.lfo.setDepth(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.lfo.setDepth(v);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.lfo.setDepth(v)}},
+  {id:'sl_osc2_gain',valId:'osc2_gain_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.gain=v;if(liveOsc2)liveOsc2.setGain(v);if(liveOsc2R)liveOsc2R.setGain(v)}},
+  {id:'sl_osc2_super',valId:'osc2_super_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc2.super=Math.round(v);if(liveOsc2)liveOsc2.superSet(Math.round(v),uiState.osc2.detune,1);if(liveOsc2R)liveOsc2R.superSet(Math.round(v),uiState.osc2.detune,1)}},
+  {id:'sl_osc2_detune',valId:'osc2_detune_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.detune=v;if(liveOsc2)liveOsc2.superSet(uiState.osc2.super,v,1);if(liveOsc2R)liveOsc2R.superSet(uiState.osc2.super,v,1)}},
+  {id:'sl_osc2_octave',valId:'osc2_octave_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc2.octaveOffset=Math.round(v);syncOsc2Notes()}},
+  {id:'sl_osc2_semi',valId:'osc2_semi_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc2.semiOffset=Math.round(v);syncOsc2Notes()}},
+  {id:'sl_osc2_filterCutoff',valId:'osc2_filterCutoff_val',fmt:v=>Math.round(v)+' Hz',cb:v=>{uiState.osc2.filterCutoff=v;if(liveOsc2)liveOsc2.filter.setCutoff(v);if(liveOsc2R)liveOsc2R.filter.setCutoff(v)}},
+  {id:'sl_osc2_filterRes',valId:'osc2_filterRes_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.filterRes=v;if(liveOsc2)liveOsc2.filter.setResonance(v);if(liveOsc2R)liveOsc2R.filter.setResonance(v)}},
+  {id:'sl_osc2_filterPoles',valId:'osc2_filterPoles_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc2.filterPoles=Math.round(v);if(liveOsc2)liveOsc2.filter.setPoles(Math.round(v));if(liveOsc2R)liveOsc2R.filter.setPoles(Math.round(v))}},
+  {id:'sl_osc2_filterPitchTrack',valId:'osc2_filterPitchTrack_val',fmt:v=>v.toFixed(1)+'×',cb:v=>{uiState.osc2.filterPitchTrack=v;if(liveOsc2)liveOsc2.filter.targetPitch(v);if(liveOsc2R)liveOsc2R.filter.targetPitch(v)}},
+  {id:'sl_osc2_dist',valId:'osc2_dist_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.distAmount=v;if(liveOsc2)liveOsc2.fx.distortion.setAmount(v);if(liveOsc2R)liveOsc2R.fx.distortion.setAmount(v)}},
+  {id:'sl_osc2_delayMs',valId:'osc2_delayMs_val',fmt:v=>Math.round(v)+' ms',cb:v=>{uiState.osc2.delayMs=v;if(liveOsc2)liveOsc2.fx.delay.setTimeMs(v);if(liveOsc2R)liveOsc2R.fx.delay.setTimeMs(v)}},
+  {id:'sl_osc2_delayFb',valId:'osc2_delayFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.delayFb=v;if(liveOsc2)liveOsc2.fx.delay.feedback=v;if(liveOsc2R)liveOsc2R.fx.delay.feedback=v}},
+  {id:'sl_osc2_delayMix',valId:'osc2_delayMix_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.delayMix=v;if(liveOsc2)liveOsc2.fx.delay.mix=v;if(liveOsc2R)liveOsc2R.fx.delay.mix=v}},
+  {id:'sl_osc2_chorusVoices',valId:'osc2_chorusVoices_val',fmt:v=>Math.round(v)+'',cb:v=>{uiState.osc2.chorusVoices=Math.round(v);if(liveOsc2)liveOsc2.fx.chorus.set(Math.round(v),uiState.osc2.chorusDel,uiState.osc2.chorusFb,uiState.osc2.chorusRate);if(liveOsc2R)liveOsc2R.fx.chorus.set(Math.round(v),uiState.osc2.chorusDel,uiState.osc2.chorusFb,uiState.osc2.chorusRate)}},
+  {id:'sl_osc2_chorusDel',valId:'osc2_chorusDel_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.chorusDel=v;if(liveOsc2)liveOsc2.fx.chorus.set(uiState.osc2.chorusVoices,v,uiState.osc2.chorusFb,uiState.osc2.chorusRate);if(liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc2.chorusVoices,v,uiState.osc2.chorusFb,uiState.osc2.chorusRate)}},
+  {id:'sl_osc2_chorusFb',valId:'osc2_chorusFb_val',fmt:v=>v.toFixed(2),cb:v=>{uiState.osc2.chorusFb=v;if(liveOsc2)liveOsc2.fx.chorus.set(uiState.osc2.chorusVoices,uiState.osc2.chorusDel,v,uiState.osc2.chorusRate);if(liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc2.chorusVoices,uiState.osc2.chorusDel,v,uiState.osc2.chorusRate)}},
+  {id:'sl_osc2_chorusRate',valId:'osc2_chorusRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc2.chorusRate=v;if(liveOsc2)liveOsc2.fx.chorus.set(uiState.osc2.chorusVoices,uiState.osc2.chorusDel,uiState.osc2.chorusFb,v);if(liveOsc2R)liveOsc2R.fx.chorus.set(uiState.osc2.chorusVoices,uiState.osc2.chorusDel,uiState.osc2.chorusFb,v)}},
+  {id:'sl_osc2_chorusSize',valId:'osc2_chorusSize_val',fmt:v=>Math.round(v)+' smp',cb:v=>{uiState.osc2.chorusSize=Math.round(v);if(liveOsc2)liveOsc2.fx.chorus.size(Math.round(v));if(liveOsc2R)liveOsc2R.fx.chorus.size(Math.round(v))}},
+  {id:'sl_osc2_lfoRate',valId:'osc2_lfoRate_val',fmt:v=>v.toFixed(2)+' Hz',cb:v=>{uiState.osc2.lfoRate=v;if(liveOsc2)liveOsc2.lfo.setRate(v);if(liveOsc2R)liveOsc2R.lfo.setRate(v)}},
+  {id:'sl_osc2_lfoDepth',valId:'osc2_lfoDepth_val',fmt:v=>v.toFixed(1),cb:v=>{uiState.osc2.lfoDepth=v;if(liveOsc2)liveOsc2.lfo.setDepth(v);if(liveOsc2R)liveOsc2R.lfo.setDepth(v)}},
 ]
 function initSliders(){
   sliderDefs.forEach(({id,valId,fmt,cb})=>{
@@ -1327,19 +1528,29 @@ function initSliders(){
 }
 function toggleBypass(mod){
   uiState[mod].active=!uiState[mod].active
-  const el=document.getElementById(mod+'Bypass'),sp=el.querySelector('span')
-  el.classList.toggle('on',uiState[mod].active);sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'
+  const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span')
+  if(el&&sp){
+    el.classList.toggle('on',uiState[mod].active)
+    if(mod==='osc2'){
+      sp.textContent=uiState[mod].active?'ON':'OFF'
+    } else {
+      sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'
+    }
+  }
+  if(mod==='osc2'&&isPlaying){
+    buildLiveOsc()
+  }
 }
 function setVocMode(mode){
   const m=((mode||'bp')+'').toLowerCase()
-  uiState.voc.mode=(m==='bandcomb')?'bandcomb':((m==='cross'||m==='crossover')?'cross':'bp')
+  uiState.voc.mode=(m==='bandcomb')?'bandcomb':((m==='cross'||m==='crossover')?'cross':(m==='olabp')?'olabp':'bp')
   uiState.voc.crossover=(uiState.voc.mode==='cross')
   syncVocModeUi();rebuildVocState()
 }
 function syncVocModeUi(){
   if(!uiState.voc.mode) uiState.voc.mode=uiState.voc.crossover?'cross':'bp'
   const mode=((uiState.voc.mode||'bp')+'').toLowerCase()
-  const map={bp:'vocModeBp',cross:'vocModeCross',bandcomb:'vocModeComb'}
+  const map={bp:'vocModeBp',cross:'vocModeCross',bandcomb:'vocModeComb',olabp:'vocModeFftBp'}
   Object.keys(map).forEach(k=>{
     const el=document.getElementById(map[k])
     if(el) el.classList.toggle('active',mode===k)
@@ -1349,21 +1560,34 @@ function syncVocModeUi(){
   const sm=document.getElementById('sl_voc_smooth')
   if(sm) sm.disabled=(mode!=='bandcomb')
   const mp=document.getElementById('sl_voc_maxpow')
-  if(mp) mp.disabled=(mode!=='bandcomb')
+  if(mp) mp.disabled=(mode!=='bandcomb'&&mode!=='olabp')
 }
 // Legacy aliases (older builds/configs used crossover/toggle names)
 function toggleVocXover(){setVocMode(uiState.voc.crossover?'bp':'cross')}
 function syncVocXoverUi(){syncVocModeUi()}
 function setWave(w){
   uiState.osc.wave=w
-  document.querySelectorAll('.wave-btn').forEach(b=>b.classList.toggle('active',b.dataset.wave===w))
+  document.querySelectorAll('#waveGroup1 .wave-btn').forEach(b=>b.classList.toggle('active',b.dataset.wave===w))
   if(liveOsc)liveOsc.setWave(w);if(liveOscR)liveOscR.setWave(w)
+}
+function setWave2(w){
+  uiState.osc2.wave=w
+  document.querySelectorAll('#waveGroup2 .wave-btn').forEach(b=>b.classList.toggle('active',b.dataset.wave===w))
+  if(liveOsc2)liveOsc2.setWave(w);if(liveOsc2R)liveOsc2R.setWave(w)
 }
 function toggleFilterMulti(){
   uiState.osc.filterMulti=!uiState.osc.filterMulti
   const el=document.getElementById('filterMultiToggle'),sp=el.querySelector('span')
   el.classList.toggle('on',uiState.osc.filterMulti);sp.textContent=uiState.osc.filterMulti?'ON':'OFF'
   if(liveOsc)liveOsc.filter.useMulti(uiState.osc.filterMulti);if(liveOscR)liveOscR.filter.useMulti(uiState.osc.filterMulti)
+  if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.useMulti(uiState.osc.filterMulti)
+  if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.useMulti(uiState.osc.filterMulti)
+}
+function toggleFilterMulti2(){
+  uiState.osc2.filterMulti=!uiState.osc2.filterMulti
+  const el=document.getElementById('filter2MultiToggle'),sp=el.querySelector('span')
+  el.classList.toggle('on',uiState.osc2.filterMulti);sp.textContent=uiState.osc2.filterMulti?'ON':'OFF'
+  if(liveOsc2)liveOsc2.filter.useMulti(uiState.osc2.filterMulti);if(liveOsc2R)liveOsc2R.filter.useMulti(uiState.osc2.filterMulti)
 }
 function toggleLfo(){
   uiState.osc.lfoEnabled=!uiState.osc.lfoEnabled
@@ -1371,11 +1595,130 @@ function toggleLfo(){
   el.classList.toggle('on',uiState.osc.lfoEnabled);sp.textContent=uiState.osc.lfoEnabled?'ON':'OFF'
   if(liveOsc){if(uiState.osc.lfoEnabled)liveOsc.lfo.enable();else liveOsc.lfo.disable()}
   if(liveOscR){if(uiState.osc.lfoEnabled)liveOscR.lfo.enable();else liveOscR.lfo.disable()}
+  if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2){if(uiState.osc.lfoEnabled)liveOsc2.lfo.enable();else liveOsc2.lfo.disable()}
+  if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R){if(uiState.osc.lfoEnabled)liveOsc2R.lfo.enable();else liveOsc2R.lfo.disable()}
+}
+function toggleLfo2(){
+  uiState.osc2.lfoEnabled=!uiState.osc2.lfoEnabled
+  const el=document.getElementById('lfo2Toggle'),sp=el.querySelector('span')
+  el.classList.toggle('on',uiState.osc2.lfoEnabled);sp.textContent=uiState.osc2.lfoEnabled?'ON':'OFF'
+  if(liveOsc2){if(uiState.osc2.lfoEnabled)liveOsc2.lfo.enable();else liveOsc2.lfo.disable()}
+  if(liveOsc2R){if(uiState.osc2.lfoEnabled)liveOsc2R.lfo.enable();else liveOsc2R.lfo.disable()}
+}
+function toggleShareFx(){
+  uiState.osc2.shareFx=!uiState.osc2.shareFx
+  const el=document.getElementById('shareFxToggle'),sp=el.querySelector('span')
+  el.classList.toggle('on',uiState.osc2.shareFx);sp.textContent=uiState.osc2.shareFx?'FX ON':'FX OFF'
+  if(uiState.osc2.shareFx){
+    syncOscFxToOsc2()
+  }
+  updateShareModeUi()
+}
+function setShareFx(val){
+  uiState.osc2.shareFx=val
+  uiState.osc2.shareLfoFlt=val
+  const el=document.getElementById('shareFxToggle'),sp=el.querySelector('span')
+  el.classList.toggle('on',val);sp.textContent=val?'FX ON':'FX OFF'
+  if(val){
+    syncOscFxToOsc2()
+  }
+  updateShareModeUi()
+}
+function setOsc2ShareAll(){
+  uiState.osc2.shareFx=true
+  uiState.osc2.shareLfoFlt=true
+  const el=document.getElementById('shareFxToggle'),sp=el.querySelector('span')
+  el.classList.add('on');sp.textContent='FX ON'
+  syncOscFxToOsc2()
+  updateShareModeUi()
+}
+function syncOscFxToOsc2(){
+  if(!liveOsc2||!liveOscR)return
+  const o=uiState.osc
+  liveOsc2.fx.distortion.setAmount(o.distAmount)
+  liveOsc2.fx.delay.setTimeMs(o.delayMs)
+  liveOsc2.fx.delay.feedback=o.delayFb
+  liveOsc2.fx.delay.mix=o.delayMix
+  liveOsc2.fx.chorus.size(o.chorusSize)
+  liveOsc2.fx.chorus.set(o.chorusVoices,o.chorusDel,o.chorusFb,o.chorusRate)
+  liveOsc2R.fx.distortion.setAmount(o.distAmount)
+  liveOsc2R.fx.delay.setTimeMs(o.delayMs)
+  liveOsc2R.fx.delay.feedback=o.delayFb
+  liveOsc2R.fx.delay.mix=o.delayMix
+  liveOsc2R.fx.chorus.size(o.chorusSize)
+  liveOsc2R.fx.chorus.set(o.chorusVoices,o.chorusDel,o.chorusFb,o.chorusRate)
+  if(uiState.osc2.shareLfoFlt){
+    liveOsc2.filter.setType(o.filterType)
+    liveOsc2.filter.setCutoff(o.filterCutoff)
+    liveOsc2.filter.setResonance(o.filterRes)
+    liveOsc2.filter.setPoles(o.filterPoles)
+    liveOsc2.filter.useMulti(o.filterMulti)
+    liveOsc2.filter.targetPitch(o.filterPitchTrack)
+    liveOsc2.lfo.setRate(o.lfoRate)
+    liveOsc2.lfo.setDepth(o.lfoDepth)
+    liveOsc2.lfo.setShape(o.lfoShape)
+    liveOsc2.lfo.setTarget(o.lfoTarget)
+    if(o.lfoEnabled)liveOsc2.lfo.enable();else liveOsc2.lfo.disable()
+    liveOsc2R.filter.setType(o.filterType)
+    liveOsc2R.filter.setCutoff(o.filterCutoff)
+    liveOsc2R.filter.setResonance(o.filterRes)
+    liveOsc2R.filter.setPoles(o.filterPoles)
+    liveOsc2R.filter.useMulti(o.filterMulti)
+    liveOsc2R.filter.targetPitch(o.filterPitchTrack)
+    liveOsc2R.lfo.setRate(o.lfoRate)
+    liveOsc2R.lfo.setDepth(o.lfoDepth)
+    liveOsc2R.lfo.setShape(o.lfoShape)
+    liveOsc2R.lfo.setTarget(o.lfoTarget)
+    if(o.lfoEnabled)liveOsc2R.lfo.enable();else liveOsc2R.lfo.disable()
+    uiState.osc2.filterType=o.filterType
+    uiState.osc2.filterCutoff=o.filterCutoff
+    uiState.osc2.filterRes=o.filterRes
+    uiState.osc2.filterPoles=o.filterPoles
+    uiState.osc2.filterMulti=o.filterMulti
+    uiState.osc2.filterPitchTrack=o.filterPitchTrack
+    uiState.osc2.lfoEnabled=o.lfoEnabled
+    uiState.osc2.lfoRate=o.lfoRate
+    uiState.osc2.lfoDepth=o.lfoDepth
+    uiState.osc2.lfoShape=o.lfoShape
+    uiState.osc2.lfoTarget=o.lfoTarget
+    document.getElementById('osc2_filterType').value=o.filterType
+    document.getElementById('osc2_lfoTarget').value=o.lfoTarget
+    document.getElementById('osc2_lfoShape').value=o.lfoShape
+    const fmt2b=document.getElementById('filter2MultiToggle'),fsp2=fmt2b?.querySelector('span')
+    if(fmt2b){fmt2b.classList.toggle('on',o.filterMulti);if(fsp2)fsp2.textContent=o.filterMulti?'ON':'OFF'}
+    const lft2=document.getElementById('lfo2Toggle'),lsp2=lft2?.querySelector('span')
+    if(lft2){lft2.classList.toggle('on',o.lfoEnabled);if(lsp2)lsp2.textContent=o.lfoEnabled?'ON':'OFF'}
+  }
+  uiState.osc2.distAmount=o.distAmount
+  uiState.osc2.delayMs=o.delayMs
+  uiState.osc2.delayFb=o.delayFb
+  uiState.osc2.delayMix=o.delayMix
+  uiState.osc2.chorusVoices=o.chorusVoices
+  uiState.osc2.chorusDel=o.chorusDel
+  uiState.osc2.chorusFb=o.chorusFb
+  uiState.osc2.chorusRate=o.chorusRate
+  uiState.osc2.chorusSize=o.chorusSize
+}
+function updateShareModeUi(){
+  const fxOnly=document.getElementById('shareFxOff'),fxAll=document.getElementById('shareFxOn')
+  if(fxOnly)fxOnly.classList.toggle('active',!uiState.osc2.shareLfoFlt)
+  if(fxAll)fxAll.classList.toggle('active',uiState.osc2.shareLfoFlt)
+  const sepSec=document.getElementById('osc2SeparateSection')
+  if(sepSec){
+    sepSec.style.display=(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt)?'none':''
+  }
 }
 document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('osc_filterType').addEventListener('change',e=>{uiState.osc.filterType=e.target.value;if(liveOsc)liveOsc.filter.setType(e.target.value);if(liveOscR)liveOscR.filter.setType(e.target.value)})
-  document.getElementById('osc_lfoTarget').addEventListener('change',e=>{uiState.osc.lfoTarget=e.target.value;if(liveOsc)liveOsc.lfo.setTarget(e.target.value);if(liveOscR)liveOscR.lfo.setTarget(e.target.value)})
-  document.getElementById('osc_lfoShape').addEventListener('change',e=>{uiState.osc.lfoShape=e.target.value;if(liveOsc)liveOsc.lfo.setShape(e.target.value);if(liveOscR)liveOscR.lfo.setShape(e.target.value)})
+  document.getElementById('osc_filterType').addEventListener('change',e=>{uiState.osc.filterType=e.target.value;if(liveOsc)liveOsc.filter.setType(e.target.value);if(liveOscR)liveOscR.filter.setType(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.filter.setType(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.filter.setType(e.target.value)})
+  document.getElementById('osc_lfoTarget').addEventListener('change',e=>{uiState.osc.lfoTarget=e.target.value;if(liveOsc)liveOsc.lfo.setTarget(e.target.value);if(liveOscR)liveOscR.lfo.setTarget(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.lfo.setTarget(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.lfo.setTarget(e.target.value)})
+  document.getElementById('osc_lfoShape').addEventListener('change',e=>{uiState.osc.lfoShape=e.target.value;if(liveOsc)liveOsc.lfo.setShape(e.target.value);if(liveOscR)liveOscR.lfo.setShape(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2)liveOsc2.lfo.setShape(e.target.value);if(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt&&liveOsc2R)liveOsc2R.lfo.setShape(e.target.value)})
+  // Voice 2 separate controls (only visible when not fully shared)
+  const osc2FilterType=document.getElementById('osc2_filterType')
+  if(osc2FilterType)osc2FilterType.addEventListener('change',e=>{uiState.osc2.filterType=e.target.value;if(liveOsc2)liveOsc2.filter.setType(e.target.value);if(liveOsc2R)liveOsc2R.filter.setType(e.target.value)})
+  const osc2LfoTarget=document.getElementById('osc2_lfoTarget')
+  if(osc2LfoTarget)osc2LfoTarget.addEventListener('change',e=>{uiState.osc2.lfoTarget=e.target.value;if(liveOsc2)liveOsc2.lfo.setTarget(e.target.value);if(liveOsc2R)liveOsc2R.lfo.setTarget(e.target.value)})
+  const osc2LfoShape=document.getElementById('osc2_lfoShape')
+  if(osc2LfoShape)osc2LfoShape.addEventListener('change',e=>{uiState.osc2.lfoShape=e.target.value;if(liveOsc2)liveOsc2.lfo.setShape(e.target.value);if(liveOsc2R)liveOsc2R.lfo.setShape(e.target.value)})
 })
 
 // EQ toggle
@@ -1448,6 +1791,18 @@ function syncOscNotes(){
     uiState.osc.notes=notes
   }
 }
+function getKbActiveNotesWithOffset(){
+  const base=getKbActiveNotes()
+  if(!base.length) return uiState.osc2.notes.length?uiState.osc2.notes:[60]
+  const offset=uiState.osc2.octaveOffset*12+uiState.osc2.semiOffset
+  return base.map(m=>m+offset)
+}
+function syncOsc2Notes(){
+  const notes=getKbActiveNotesWithOffset()
+  if(liveOsc2){liveOsc2.setSemitones(notes);liveOsc2.superSet(uiState.osc2.super,uiState.osc2.detune,1)}
+  if(liveOsc2R){liveOsc2R.setSemitones(notes);liveOsc2R.superSet(uiState.osc2.super,uiState.osc2.detune,1)}
+  uiState.osc2.notes=notes
+}
 function buildKbKeys(){
   const container=document.getElementById('synthKeyboardContainer')
   const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
@@ -1488,11 +1843,12 @@ function loadConfig(){
       if(!uiState.voc.mode){
         uiState.voc.mode=uiState.voc.crossover?'cross':'bp'
       }
-      uiState.voc.mode=((uiState.voc.mode+'').toLowerCase()==='bandcomb')?'bandcomb':(((uiState.voc.mode+'').toLowerCase()==='cross'||(uiState.voc.mode+'').toLowerCase()==='crossover')?'cross':'bp')
+      uiState.voc.mode=((uiState.voc.mode+'').toLowerCase()==='bandcomb')?'bandcomb':(((uiState.voc.mode+'').toLowerCase()==='cross'||(uiState.voc.mode+'').toLowerCase()==='crossover')?'cross':((uiState.voc.mode+'').toLowerCase()==='olabp')?'olabp':'bp')
       uiState.voc.crossover=(uiState.voc.mode==='cross')
       if(cfg.mbc)Object.assign(uiState.mbc,cfg.mbc)
       if(cfg.in1script)Object.assign(uiState.in1script,cfg.in1script)
       if(cfg.osc)Object.assign(uiState.osc,cfg.osc)
+      if(cfg.osc2)Object.assign(uiState.osc2,cfg.osc2)
       if(cfg.eq)Object.assign(uiState.eq,cfg.eq)
       // Back-compat: some configs stored mbc.decay as a pole near 1 (e.g. 0.999).
       // This build expects a small smoothing coefficient (0.0001..0.1).
@@ -1549,15 +1905,33 @@ function syncUiFromState(){
   const mv=document.getElementById('masterVol'),mvv=document.getElementById('masterVolVal');if(mv){mv.value=uiState.masterVol;mvv.textContent=uiState.masterVol.toFixed(2)}
   document.getElementById('stereoToggle').classList.toggle('on',uiState.stereo)
   const sw=document.getElementById('stereoWidth'),swv=document.getElementById('stereoWidthVal');if(sw){sw.value=uiState.stereoWidth;swv.textContent=uiState.stereoWidth.toFixed(2)}
-  setCarrierSrc(uiState.carrierSrc);setWave(uiState.osc.wave)
+  setCarrierSrc(uiState.carrierSrc);setWave(uiState.osc.wave);setWave2(uiState.osc2.wave)
   const bvEl=document.getElementById('bypassVocToggle'),bvLbl=document.getElementById('bypassVocLabel')
   if(bvEl){bvEl.classList.toggle('on',uiState.bypassVoc);if(bvLbl)bvLbl.textContent=uiState.bypassVoc?'ON':'OFF'}
-  ;['voc','mbc','in1script','osc'].forEach(mod=>{const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span');if(el){el.classList.toggle('on',uiState[mod].active);if(sp)sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'}})
+  // OSC bypass states - combined header
+  const oscBypass=document.getElementById('oscBypass'),oscSp=oscBypass?.querySelector('span')
+  if(oscBypass){oscBypass.classList.toggle('on',uiState.osc.active);if(oscSp)oscSp.textContent=uiState.osc.active?'ACTIVE':'BYPASS'}
+  const osc2Bypass=document.getElementById('osc2Bypass'),osc2Sp=osc2Bypass?.querySelector('span')
+  if(osc2Bypass){osc2Bypass.classList.toggle('on',uiState.osc2.active);if(osc2Sp)osc2Sp.textContent=uiState.osc2.active?'ON':'OFF'}
+  ;['voc','mbc','in1script'].forEach(mod=>{const el=document.getElementById(mod+'Bypass'),sp=el?.querySelector('span');if(el){el.classList.toggle('on',uiState[mod].active);if(sp)sp.textContent=uiState[mod].active?'ACTIVE':'BYPASS'}})
   const ft=document.getElementById('osc_filterType');if(ft)ft.value=uiState.osc.filterType
   const lt=document.getElementById('osc_lfoTarget');if(lt)lt.value=uiState.osc.lfoTarget
   const ls=document.getElementById('osc_lfoShape');if(ls)ls.value=uiState.osc.lfoShape
   const fmt2=document.getElementById('filterMultiToggle'),fsp=fmt2?.querySelector('span');if(fmt2){fmt2.classList.toggle('on',uiState.osc.filterMulti);if(fsp)fsp.textContent=uiState.osc.filterMulti?'ON':'OFF'}
   const lft=document.getElementById('lfoToggle'),lsp=lft?.querySelector('span');if(lft){lft.classList.toggle('on',uiState.osc.lfoEnabled);if(lsp)lsp.textContent=uiState.osc.lfoEnabled?'ON':'OFF'}
+  // Voice 2 separate controls (only visible when not fully shared)
+  const ft2=document.getElementById('osc2_filterType');if(ft2)ft2.value=uiState.osc2.filterType
+  const lt2=document.getElementById('osc2_lfoTarget');if(lt2)lt2.value=uiState.osc2.lfoTarget
+  const ls2=document.getElementById('osc2_lfoShape');if(ls2)ls2.value=uiState.osc2.lfoShape
+  const lft2=document.getElementById('lfo2Toggle'),lsp2=lft2?.querySelector('span');if(lft2){lft2.classList.toggle('on',uiState.osc2.lfoEnabled);if(lsp2)lsp2.textContent=uiState.osc2.lfoEnabled?'ON':'OFF'}
+  const shareFxToggle=document.getElementById('shareFxToggle'),shareFxSp=shareFxToggle?.querySelector('span')
+  if(shareFxToggle){shareFxToggle.classList.toggle('on',uiState.osc2.shareFx);if(shareFxSp)shareFxSp.textContent=uiState.osc2.shareFx?'FX ON':'FX OFF'}
+  const shareFxOff=document.getElementById('shareFxOff'),shareFxOn=document.getElementById('shareFxOn')
+  if(shareFxOff)shareFxOff.classList.toggle('active',!uiState.osc2.shareLfoFlt)
+  if(shareFxOn)shareFxOn.classList.toggle('active',uiState.osc2.shareLfoFlt)
+  // Hide/show voice 2 separate section based on share mode
+  const sepSec=document.getElementById('osc2SeparateSection')
+  if(sepSec){sepSec.style.display=(uiState.osc2.shareFx&&uiState.osc2.shareLfoFlt)?'none':''}
   const eqEl=document.getElementById('eqToggle'),eqSp=eqEl?.querySelector('span')
   if(eqEl){eqEl.classList.toggle('on',uiState.eq.active);if(eqSp)eqSp.textContent=uiState.eq.active?'ON':'OFF'}
   specCanvas.classList.toggle('eq-active',uiState.eq.active)
@@ -1571,7 +1945,7 @@ function syncUiFromState(){
   if(audioCtx){buildLiveOsc();rebuildVocState();flushMbc()}
 }
 function getStateValForSlider(id){
-  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_smooth':uiState.voc.smooth,'sl_voc_maxpow':uiState.voc.maxPow,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth}
+  const map={'sl_voc_bands':uiState.voc.bands,'sl_voc_q':uiState.voc.q,'sl_voc_shift':uiState.voc.shift,'sl_voc_attack':uiState.voc.attack,'sl_voc_release':uiState.voc.release,'sl_voc_wet':uiState.voc.wet,'sl_voc_gain':uiState.voc.gain,'sl_voc_iter':uiState.voc.iter,'sl_voc_smooth':uiState.voc.smooth,'sl_voc_maxpow':uiState.voc.maxPow,'sl_voc_xdecay':uiState.voc.xDecay,'sl_mbc_ratio':uiState.mbc.ratio,'sl_mbc_attack':uiState.mbc.attack,'sl_mbc_decay':uiState.mbc.decay,'sl_mbc_filterIter':uiState.mbc.filterIter,'sl_mbc_q':uiState.mbc.q,'mbc_freqLow':uiState.mbc.freqs[0],'mbc_freqMidL':uiState.mbc.freqs[1],'mbc_freqMidH':uiState.mbc.freqs[2],'mbc_freqHigh':uiState.mbc.freqs[3],'mbc_thr0':uiState.mbc.thresholds[0],'mbc_thr1':uiState.mbc.thresholds[1],'mbc_thr2':uiState.mbc.thresholds[2],'sl_osc_gain':uiState.osc.gain,'sl_osc_super':uiState.osc.super,'sl_osc_detune':uiState.osc.detune,'sl_osc_filterCutoff':uiState.osc.filterCutoff,'sl_osc_filterRes':uiState.osc.filterRes,'sl_osc_filterPoles':uiState.osc.filterPoles,'sl_osc_filterPitchTrack':uiState.osc.filterPitchTrack,'sl_osc_dist':uiState.osc.distAmount,'sl_osc_delayMs':uiState.osc.delayMs,'sl_osc_delayFb':uiState.osc.delayFb,'sl_osc_delayMix':uiState.osc.delayMix,'sl_osc_chorusVoices':uiState.osc.chorusVoices,'sl_osc_chorusDel':uiState.osc.chorusDel,'sl_osc_chorusFb':uiState.osc.chorusFb,'sl_osc_chorusRate':uiState.osc.chorusRate,'sl_osc_chorusSize':uiState.osc.chorusSize,'sl_osc_lfoRate':uiState.osc.lfoRate,'sl_osc_lfoDepth':uiState.osc.lfoDepth,'sl_osc2_gain':uiState.osc2.gain,'sl_osc2_super':uiState.osc2.super,'sl_osc2_detune':uiState.osc2.detune,'sl_osc2_octave':uiState.osc2.octaveOffset,'sl_osc2_semi':uiState.osc2.semiOffset,'sl_osc2_filterCutoff':uiState.osc2.filterCutoff,'sl_osc2_filterRes':uiState.osc2.filterRes,'sl_osc2_filterPoles':uiState.osc2.filterPoles,'sl_osc2_filterPitchTrack':uiState.osc2.filterPitchTrack,'sl_osc2_dist':uiState.osc2.distAmount,'sl_osc2_delayMs':uiState.osc2.delayMs,'sl_osc2_delayFb':uiState.osc2.delayFb,'sl_osc2_delayMix':uiState.osc2.delayMix,'sl_osc2_chorusVoices':uiState.osc2.chorusVoices,'sl_osc2_chorusDel':uiState.osc2.chorusDel,'sl_osc2_chorusFb':uiState.osc2.chorusFb,'sl_osc2_chorusRate':uiState.osc2.chorusRate,'sl_osc2_chorusSize':uiState.osc2.chorusSize,'sl_osc2_lfoRate':uiState.osc2.lfoRate,'sl_osc2_lfoDepth':uiState.osc2.lfoDepth}
   return id in map?map[id]:null
 }
 
@@ -1948,6 +2322,19 @@ function renderWav(){
     offOsc.setSemitones(noteList);offOsc.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(offOsc)
     const offOscR=new DSPOscillator(sr)
     offOscR.setSemitones(noteList);offOscR.super(uiState.osc.super,uiState.osc.detune,1);applyOscParams(offOscR);offOscR.reset()
+    const offOsc2=new DSPOscillator(sr)
+    const notes2=noteList.map(m=>m+uiState.osc2.octaveOffset*12+uiState.osc2.semiOffset)
+    offOsc2.setSemitones(notes2);offOsc2.super(uiState.osc2.super,uiState.osc2.detune,1)
+    const offOsc2R=new DSPOscillator(sr)
+    offOsc2R.setSemitones(notes2);offOsc2R.super(uiState.osc2.super,uiState.osc2.detune,1)
+    if(uiState.osc2.shareFx){
+      applyOscParams2Shared(offOsc2)
+      applyOscParams2Shared(offOsc2R)
+    } else {
+      applyOscParams2(offOsc2)
+      applyOscParams2(offOsc2R)
+    }
+    offOsc2R.reset()
     // Use a completely isolated state map for offline render so that
     // bandcomb (and all other modes) never share or corrupt live playback state.
     const savedState=new Map(_state),savedDspSr=_sr
@@ -1955,7 +2342,7 @@ function renderWav(){
     _sr=sr
     const eqGains=buildEqGains(uiState.voc.bands)
     const mr=((uiState.voc.mode||((uiState.voc.crossover)?'cross':'bp'))+'').toLowerCase()
-    const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':'bp')
+    const mode=(mr==='bandcomb')?'bandcomb':((mr==='cross'||mr==='crossover')?'cross':(mr==='olabp')?'olabp':'bp')
     const offVocOpts={bands:uiState.voc.bands,freqLow:80,freqHigh:sr/2,envAttack:uiState.voc.attack,envRelease:uiState.voc.release,q:uiState.voc.q,filterIter:uiState.voc.iter,shift:uiState.voc.shift,smooth:uiState.voc.smooth|0,maxPow:uiState.voc.maxPow|0,crossover:mode==='cross',mode,xDecay:uiState.voc.xDecay,wet:uiState.voc.wet,outputGain:uiState.voc.gain,eqGains}
     const offVocOptsR={...offVocOpts,shift:offVocOpts.shift+uiState.stereoWidth*0.5}
     const offVocState=_getVocState(sr,offVocOpts,0)
@@ -1972,7 +2359,7 @@ function renderWav(){
       let carL=0,carR=0
       if(uiState.carrierSrc==='file'&&mod2BufferL){if(m2<mod2BufferL.length){carL=mod2BufferL[m2];carR=stereo?mod2BufferR[m2]:carL;m2++}}
       else if(uiState.carrierSrc==='file1'&&mod1BufferL){const p=m1-1;if(p<mod1BufferL.length){carL=mod1BufferL[p];carR=stereo&&mod1BufferR?mod1BufferR[p]:carL}}
-      else{carL=offOsc.tick();if(stereo){carR=offOscR.tick()}else carR=carL}
+      else{carL=offOsc.tick();if(stereo){carR=offOscR.tick()}else carR=carL;if(uiState.osc2.active){carL+=offOsc2.tick();if(stereo){carR+=offOsc2R.tick()}}}
       let vL=uiState.bypassVoc?modL:(uiState.voc.active?_processSample(modL,carL,sr,offVocOpts,offVocState):carL)
       if(uiState.mbc.active){vL=mbc(vL*3,sr,{...mbcOpts,ch:0})}
       let vR
@@ -2000,6 +2387,7 @@ initSliders()
 initIn1ScriptUi()
 buildKbKeys()
 drawSpectrum()
+updateShareModeUi()
 </script>
 </body>
 </html>
